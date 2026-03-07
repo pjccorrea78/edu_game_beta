@@ -157,3 +157,41 @@ export const notifications = mysqlTable("notifications", {
 });
 
 export type Notification = typeof notifications.$inferSelect;
+
+// ─── Study Materials ──────────────────────────────────────────────────────────
+export const studyMaterials = mysqlTable("study_materials", {
+  id: int("id").autoincrement().primaryKey(),
+  playerId: int("playerId").notNull(),
+  title: varchar("title", { length: 256 }).notNull(),
+  contentText: text("contentText"),
+  fileUrl: varchar("fileUrl", { length: 1024 }),
+  fileType: mysqlEnum("fileType", ["text", "pdf", "image"]).default("text").notNull(),
+  status: mysqlEnum("status", ["pending", "analyzing", "ready", "error"])
+    .default("pending")
+    .notNull(),
+  discipline: varchar("discipline", { length: 64 }),
+  questionsGenerated: int("questionsGenerated").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  analyzedAt: timestamp("analyzedAt"),
+});
+
+export type StudyMaterial = typeof studyMaterials.$inferSelect;
+export type InsertStudyMaterial = typeof studyMaterials.$inferInsert;
+
+// ─── Custom Quiz Questions (from study materials) ─────────────────────────────
+export const customQuizQuestions = mysqlTable("custom_quiz_questions", {
+  id: int("id").autoincrement().primaryKey(),
+  materialId: int("materialId").notNull(),
+  playerId: int("playerId").notNull(),
+  questionText: text("questionText").notNull(),
+  optionA: text("optionA").notNull(),
+  optionB: text("optionB").notNull(),
+  optionC: text("optionC").notNull(),
+  optionD: text("optionD").notNull(),
+  correctOption: mysqlEnum("correctOption", ["A", "B", "C", "D"]).notNull(),
+  explanation: text("explanation"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CustomQuizQuestion = typeof customQuizQuestions.$inferSelect;
+export type InsertCustomQuizQuestion = typeof customQuizQuestions.$inferInsert;

@@ -9,10 +9,14 @@ import {
   equipmentItems,
   playerEquipment,
   notifications,
+  studyMaterials,
+  customQuizQuestions,
   type AvatarConfig,
   type Discipline,
   type InsertPlayer,
   type InsertQuestion,
+  type InsertStudyMaterial,
+  type InsertCustomQuizQuestion,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -260,4 +264,75 @@ export async function getUnsentNotifications() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(notifications).where(eq(notifications.sent, false)).limit(50);
+}
+
+// ─── Study Materials ──────────────────────────────────────────────────────────
+export async function createStudyMaterial(data: InsertStudyMaterial) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(studyMaterials).values(data);
+  const created = await db
+    .select()
+    .from(studyMaterials)
+    .where(and(eq(studyMaterials.playerId, data.playerId!), eq(studyMaterials.title, data.title)))
+    .orderBy(desc(studyMaterials.createdAt))
+    .limit(1);
+  return created[0];
+}
+
+export async function updateStudyMaterialStatus(
+  materialId: number,
+  status: "pending" | "analyzing" | "ready" | "error",
+  questionsGenerated?: number
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = { status };
+  if (status === "ready" || status === "error") updateData.analyzedAt = new Date();
+  if (questionsGenerated !== undefined) updateData.questionsGenerated = questionsGenerated;
+  await db.update(studyMaterials).set(updateData).where(eq(studyMaterials.id, materialId));
+}
+
+export async function getStudyMaterialsByPlayer(playerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(studyMaterials)
+    .where(eq(studyMaterials.playerId, playerId))
+    .orderBy(desc(studyMaterials.createdAt))
+    .limit(20);
+}
+
+export async function getStudyMaterialById(materialId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(studyMaterials)
+    .where(eq(studyMaterials.id, materialId))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+export async function insertCustomQuizQuestions(questions: InsertCustomQuizQuestion[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(customQuizQuestions).values(questions);
+}
+
+export async function getCustomQuizQuestions(materialId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(customQuizQuestions)
+    .where(eq(customQuizQuestions.materialId, materialId))
+    .orderBy(customQuizQuestions.id);
+}
+
+export async function deleteCustomQuizQuestions(materialId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(customQuizQuestions).where(eq(customQuizQuestions.materialId, materialId));
 }

@@ -11,8 +11,9 @@ import GameMap from "./pages/GameMap";
 import QuizScreen from "./pages/QuizScreen";
 import AvatarShop from "./pages/AvatarShop";
 import ProgressPanel from "./pages/ProgressPanel";
+import StudyMaterial from "./pages/StudyMaterial";
 
-type Screen = "welcome" | "map" | "quiz" | "shop" | "progress";
+type Screen = "welcome" | "map" | "quiz" | "shop" | "progress" | "study" | "custom-quiz";
 type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
 
 function GameRouter() {
@@ -20,6 +21,7 @@ function GameRouter() {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [activeDiscipline, setActiveDiscipline] = useState<Discipline | null>(null);
   const [hasOnboarded, setHasOnboarded] = useState(false);
+  const [customQuizMaterial, setCustomQuizMaterial] = useState<{ id: number; title: string } | null>(null);
 
   // Check if player has already set a nickname (returning player)
   useEffect(() => {
@@ -83,6 +85,11 @@ function GameRouter() {
     setScreen("quiz");
   };
 
+  const handleStartCustomQuiz = (materialId: number, title: string) => {
+    setCustomQuizMaterial({ id: materialId, title });
+    setScreen("custom-quiz");
+  };
+
   return (
     <div className="min-h-screen no-select">
       <AnimatePresence mode="wait">
@@ -112,6 +119,7 @@ function GameRouter() {
               onOpenShop={() => setScreen("shop")}
               onOpenProgress={() => setScreen("progress")}
               onOpenAvatar={() => setScreen("shop")}
+              onOpenStudy={() => setScreen("study")}
             />
           </motion.div>
         )}
@@ -155,6 +163,42 @@ function GameRouter() {
             <ProgressPanel
               onBack={() => setScreen("map")}
               onStartQuiz={handleStartQuizFromProgress}
+            />
+          </motion.div>
+        )}
+
+        {screen === "study" && (
+          <motion.div
+            key="study"
+            initial={{ opacity: 0, x: 60 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 60 }}
+            className="min-h-screen"
+          >
+            <StudyMaterial
+              onBack={() => setScreen("map")}
+              onStartCustomQuiz={handleStartCustomQuiz}
+            />
+          </motion.div>
+        )}
+
+        {screen === "custom-quiz" && customQuizMaterial && (
+          <motion.div
+            key="custom-quiz"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="min-h-screen"
+          >
+            <QuizScreen
+              discipline={null}
+              customMaterialId={customQuizMaterial.id}
+              customTitle={customQuizMaterial.title}
+              onBack={() => setScreen("study")}
+              onFinish={() => {
+                setCustomQuizMaterial(null);
+                setScreen("map");
+              }}
             />
           </motion.div>
         )}

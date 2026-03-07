@@ -15,6 +15,13 @@
       "when": 1772848794158,
       "tag": "0001_familiar_carnage",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1772850385869,
+      "tag": "0002_nifty_kang",
+      "breakpoints": true
     }
   ]
 }

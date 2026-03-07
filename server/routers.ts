@@ -22,6 +22,13 @@ import {
   createNotification,
   insertQuestion,
   getDb,
+  createStudyMaterial,
+  updateStudyMaterialStatus,
+  getStudyMaterialsByPlayer,
+  getStudyMaterialById,
+  insertCustomQuizQuestions,
+  getCustomQuizQuestions,
+  deleteCustomQuizQuestions,
 } from "./db";
 import { players, equipmentItems } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -439,6 +446,281 @@ Regras:
         return { generated: parsed.questions.length, questions: parsed.questions };
       }),
   }),
-});
 
+  // ─── Study Material ──────────────────────────────────────────────────────────
+  studyMaterial: router({
+    // Upload text material and trigger LLM analysis
+    submit: publicProcedure
+      .input(
+        z.object({
+          sessionId: z.string(),
+          title: z.string().min(1).max(256),
+          contentText: z.string().min(10).max(50000),
+          discipline: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        // Create material record
+        const material = await createStudyMaterial({
+          playerId: player.id,
+          title: input.title,
+          contentText: input.contentText,
+          fileType: "text",
+          status: "analyzing",
+          discipline: input.discipline,
+        });
+        if (!material) throw new Error("Failed to create material");
+
+        // Analyze with LLM and generate questions
+        try {
+          const prompt = `Você é um professor especialista em educação infantil (5-12 anos).
+
+Analise o seguinte material de estudo e gere exatamente 10 perguntas de múltipla escolha em português brasileiro.
+
+MATERIAL:
+${input.contentText.slice(0, 8000)}
+
+Regras:
+- Cada pergunta deve ter 4 alternativas (A, B, C, D)
+- Apenas UMA alternativa correta
+- Linguagem simples e adequada para crianças de 5-12 anos
+- Perguntas devem cobrir os principais conceitos do material
+- Inclua uma explicação breve da resposta correta
+- Varie a dificuldade (fácil, média, difícil)
+
+Retorne SOMENTE um JSON válido neste formato:
+{
+  "questions": [
+    {
+      "questionText": "Pergunta aqui?",
+      "optionA": "Alternativa A",
+      "optionB": "Alternativa B",
+      "optionC": "Alternativa C",
+      "optionD": "Alternativa D",
+      "correctOption": "A",
+      "explanation": "Explicação breve"
+    }
+  ]
+}`;
+
+          const llmResponse = await invokeLLM({
+            messages: [
+              { role: "system", content: "Você é um professor especialista que gera quiz educativos. Retorne APENAS JSON válido, sem markdown, sem texto extra." },
+              { role: "user", content: prompt },
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "quiz_questions",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    questions: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          questionText: { type: "string" },
+                          optionA: { type: "string" },
+                          optionB: { type: "string" },
+                          optionC: { type: "string" },
+                          optionD: { type: "string" },
+                          correctOption: { type: "string", enum: ["A", "B", "C", "D"] },
+                          explanation: { type: "string" },
+                        },
+                        required: ["questionText", "optionA", "optionB", "optionC", "optionD", "correctOption", "explanation"],
+                        additionalProperties: false,
+                      },
+                    },
+                  },
+                  required: ["questions"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          });
+
+          const raw = llmResponse.choices?.[0]?.message?.content ?? "{}";
+          let parsed: { questions: Array<{ questionText: string; optionA: string; optionB: string; optionC: string; optionD: string; correctOption: string; explanation: string }> };
+          try {
+            parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+          } catch {
+            throw new Error("LLM returned invalid JSON");
+          }
+
+          const validQuestions = (parsed.questions ?? []).slice(0, 10).filter(
+            (q) => q.questionText && q.optionA && q.optionB && q.optionC && q.optionD && ["A","B","C","D"].includes(q.correctOption)
+          );
+
+          if (validQuestions.length === 0) throw new Error("No valid questions generated");
+
+          // Delete old questions if re-analyzing
+          await deleteCustomQuizQuestions(material.id);
+
+          // Save generated questions
+          await insertCustomQuizQuestions(
+            validQuestions.map((q) => ({
+              materialId: material.id,
+              playerId: player.id,
+              questionText: q.questionText,
+              optionA: q.optionA,
+              optionB: q.optionB,
+              optionC: q.optionC,
+              optionD: q.optionD,
+              correctOption: q.correctOption as "A" | "B" | "C" | "D",
+              explanation: q.explanation,
+            }))
+          );
+
+          await updateStudyMaterialStatus(material.id, "ready", validQuestions.length);
+
+          return {
+            materialId: material.id,
+            status: "ready" as const,
+            questionsGenerated: validQuestions.length,
+          };
+        } catch (err) {
+          await updateStudyMaterialStatus(material.id, "error", 0);
+          throw new Error(`Análise falhou: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
+        }
+      }),
+
+    // List all materials for a player
+    list: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const materials = await getStudyMaterialsByPlayer(player.id);
+        return { materials };
+      }),
+
+    // Get questions for a specific material
+    getQuestions: publicProcedure
+      .input(z.object({ sessionId: z.string(), materialId: z.number() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const material = await getStudyMaterialById(input.materialId);
+        if (!material || material.playerId !== player.id) {
+          throw new Error("Material não encontrado");
+        }
+        const questions = await getCustomQuizQuestions(input.materialId);
+        return { material, questions };
+      }),
+
+    // Re-analyze an existing material
+    reanalyze: publicProcedure
+      .input(z.object({ sessionId: z.string(), materialId: z.number() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const material = await getStudyMaterialById(input.materialId);
+        if (!material || material.playerId !== player.id) {
+          throw new Error("Material não encontrado");
+        }
+        if (!material.contentText) throw new Error("Material sem conteúdo de texto");
+
+        await updateStudyMaterialStatus(input.materialId, "analyzing");
+
+        // Re-trigger analysis (same logic as submit)
+        const prompt = `Você é um professor especialista em educação infantil (5-12 anos).
+
+Analise o seguinte material de estudo e gere exatamente 10 perguntas de múltipla escolha em português brasileiro.
+
+MATERIAL:
+${material.contentText.slice(0, 8000)}
+
+Regras:
+- Cada pergunta deve ter 4 alternativas (A, B, C, D)
+- Apenas UMA alternativa correta
+- Linguagem simples e adequada para crianças de 5-12 anos
+- Perguntas devem cobrir os principais conceitos do material
+- Inclua uma explicação breve da resposta correta
+
+Retorne SOMENTE um JSON válido neste formato:
+{
+  "questions": [
+    {
+      "questionText": "Pergunta aqui?",
+      "optionA": "Alternativa A",
+      "optionB": "Alternativa B",
+      "optionC": "Alternativa C",
+      "optionD": "Alternativa D",
+      "correctOption": "A",
+      "explanation": "Explicação breve"
+    }
+  ]
+}`;
+
+        try {
+          const llmResponse = await invokeLLM({
+            messages: [
+              { role: "system", content: "Você é um professor especialista que gera quiz educativos. Retorne APENAS JSON válido." },
+              { role: "user", content: prompt },
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "quiz_questions",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    questions: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          questionText: { type: "string" },
+                          optionA: { type: "string" },
+                          optionB: { type: "string" },
+                          optionC: { type: "string" },
+                          optionD: { type: "string" },
+                          correctOption: { type: "string", enum: ["A", "B", "C", "D"] },
+                          explanation: { type: "string" },
+                        },
+                        required: ["questionText", "optionA", "optionB", "optionC", "optionD", "correctOption", "explanation"],
+                        additionalProperties: false,
+                      },
+                    },
+                  },
+                  required: ["questions"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          });
+
+          const raw = llmResponse.choices?.[0]?.message?.content ?? "{}";
+          let parsed: { questions: Array<{ questionText: string; optionA: string; optionB: string; optionC: string; optionD: string; correctOption: string; explanation: string }> };
+          try { parsed = typeof raw === "string" ? JSON.parse(raw) : raw; }
+          catch { throw new Error("LLM returned invalid JSON"); }
+
+          const validQuestions = (parsed.questions ?? []).slice(0, 10).filter(
+            (q) => q.questionText && ["A","B","C","D"].includes(q.correctOption)
+          );
+
+          await deleteCustomQuizQuestions(input.materialId);
+          await insertCustomQuizQuestions(
+            validQuestions.map((q) => ({
+              materialId: input.materialId,
+              playerId: player.id,
+              questionText: q.questionText,
+              optionA: q.optionA,
+              optionB: q.optionB,
+              optionC: q.optionC,
+              optionD: q.optionD,
+              correctOption: q.correctOption as "A" | "B" | "C" | "D",
+              explanation: q.explanation,
+            }))
+          );
+          await updateStudyMaterialStatus(input.materialId, "ready", validQuestions.length);
+          return { status: "ready" as const, questionsGenerated: validQuestions.length };
+        } catch (err) {
+          await updateStudyMaterialStatus(input.materialId, "error", 0);
+          throw new Error(`Análise falhou: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
+        }
+      }),
+  }),
+});
 export type AppRouter = typeof appRouter;

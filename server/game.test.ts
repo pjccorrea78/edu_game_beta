@@ -78,6 +78,63 @@ vi.mock("./db", () => ({
   createNotification: vi.fn().mockResolvedValue(undefined),
   insertQuestion: vi.fn().mockResolvedValue(undefined),
   getDb: vi.fn().mockResolvedValue(null),
+  // Study material mocks
+  createStudyMaterial: vi.fn().mockResolvedValue({
+    id: 99,
+    playerId: 1,
+    title: "Capítulo 1 - Sistema Solar",
+    contentText: "O sistema solar é composto por 8 planetas...",
+    fileType: "text",
+    status: "analyzing",
+    discipline: "ciencias",
+    questionsGenerated: 0,
+    createdAt: new Date(),
+    analyzedAt: null,
+  }),
+  updateStudyMaterialStatus: vi.fn().mockResolvedValue(undefined),
+  getStudyMaterialsByPlayer: vi.fn().mockResolvedValue([
+    {
+      id: 99,
+      playerId: 1,
+      title: "Capítulo 1 - Sistema Solar",
+      contentText: "O sistema solar é composto por 8 planetas...",
+      fileType: "text",
+      status: "ready",
+      discipline: "ciencias",
+      questionsGenerated: 10,
+      createdAt: new Date(),
+      analyzedAt: new Date(),
+    },
+  ]),
+  getStudyMaterialById: vi.fn().mockResolvedValue({
+    id: 99,
+    playerId: 1,
+    title: "Capítulo 1 - Sistema Solar",
+    contentText: "O sistema solar é composto por 8 planetas...",
+    fileType: "text",
+    status: "ready",
+    discipline: "ciencias",
+    questionsGenerated: 10,
+    createdAt: new Date(),
+    analyzedAt: new Date(),
+  }),
+  insertCustomQuizQuestions: vi.fn().mockResolvedValue(undefined),
+  getCustomQuizQuestions: vi.fn().mockResolvedValue([
+    {
+      id: 1,
+      materialId: 99,
+      playerId: 1,
+      questionText: "Quantos planetas tem o sistema solar?",
+      optionA: "7",
+      optionB: "8",
+      optionC: "9",
+      optionD: "10",
+      correctOption: "B",
+      explanation: "O sistema solar tem 8 planetas.",
+      createdAt: new Date(),
+    },
+  ]),
+  deleteCustomQuizQuestions: vi.fn().mockResolvedValue(undefined),
 }));
 
 function createPublicContext(): TrpcContext {
@@ -233,6 +290,33 @@ describe("avatar router", () => {
     expect(result.avatarConfig).toBeDefined();
     expect(result.avatarConfig).toHaveProperty("skinColor");
     expect(result.avatarConfig).toHaveProperty("hairColor");
+  });
+});
+
+describe("studyMaterial router", () => {
+  it("list returns materials for a player", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.studyMaterial.list({ sessionId: "test-session-123" });
+    expect(result.materials).toBeDefined();
+    expect(Array.isArray(result.materials)).toBe(true);
+    expect(result.materials).toHaveLength(1);
+    expect(result.materials[0].title).toBe("Capítulo 1 - Sistema Solar");
+  });
+
+  it("getQuestions returns questions for a material", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.studyMaterial.getQuestions({
+      sessionId: "test-session-123",
+      materialId: 99,
+    });
+    expect(result.material).toBeDefined();
+    expect(result.questions).toBeDefined();
+    expect(Array.isArray(result.questions)).toBe(true);
+    expect(result.questions).toHaveLength(1);
+    expect(result.questions[0].questionText).toBe("Quantos planetas tem o sistema solar?");
+    expect(result.questions[0].correctOption).toBe("B");
   });
 });
 

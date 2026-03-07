@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
 import { useGame } from "@/contexts/GameContext";
 import BlockyAvatar from "@/components/BlockyAvatar";
-import { ArrowLeft, Zap, CheckCircle, XCircle, Trophy, Star, RefreshCw } from "lucide-react";
+import { ArrowLeft, Zap, CheckCircle, XCircle, Trophy, Star, RefreshCw, BookOpen } from "lucide-react";
 
 type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
 
@@ -16,14 +16,16 @@ type Question = {
   optionD: string;
   correctOption: string;
   explanation?: string | null;
-  discipline: string;
-  difficulty: string;
+  discipline?: string;
+  difficulty?: string;
 };
 
 type Props = {
-  discipline: Discipline;
+  discipline: Discipline | null;
+  customMaterialId?: number;
+  customTitle?: string;
   onBack: () => void;
-  onFinish: (result: QuizResult) => void;
+  onFinish: (result?: QuizResult) => void;
 };
 
 type QuizResult = {
@@ -75,9 +77,15 @@ function Confetti() {
   );
 }
 
-export default function QuizScreen({ discipline, onBack, onFinish }: Props) {
+export default function QuizScreen({ discipline, customMaterialId, customTitle, onBack, onFinish }: Props) {
   const { sessionId, player, refreshPlayer } = useGame();
-  const info = DISCIPLINE_INFO[discipline];
+  const isCustomQuiz = !!customMaterialId;
+  const info = discipline ? DISCIPLINE_INFO[discipline] : {
+    name: customTitle ?? "Quiz Personalizado",
+    emoji: "📚",
+    color: "#7C3AED",
+    bg: "from-violet-500 to-indigo-500",
+  };
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -95,7 +103,11 @@ export default function QuizScreen({ discipline, onBack, onFinish }: Props) {
   const [timerActive, setTimerActive] = useState(false);
 
   const getQuestionsQuery = trpc.quiz.getQuestions.useQuery(
-    { sessionId, discipline },
+    { sessionId, discipline: discipline! },
+    { enabled: false }
+  );
+  const getCustomQuestionsQuery = trpc.studyMaterial.getQuestions.useQuery(
+    { sessionId, materialId: customMaterialId! },
     { enabled: false }
   );
   const startSession = trpc.quiz.startSession.useMutation();
@@ -106,13 +118,33 @@ export default function QuizScreen({ discipline, onBack, onFinish }: Props) {
   useEffect(() => {
     async function init() {
       try {
-        const result = await getQuestionsQuery.refetch();
-        if (result.data?.questions && result.data.questions.length > 0) {
-          setQuestions(result.data.questions.slice(0, 10));
-          const session = await startSession.mutateAsync({ sessionId, discipline });
-          setQuizSessionId(session.sessionId);
-          setPhase("quiz");
-          setTimerActive(true);
+        if (isCustomQuiz && customMaterialId) {
+          // Load custom quiz questions from study material
+          const result = await getCustomQuestionsQuery.refetch();
+          if (result.data?.questions && result.data.questions.length > 0) {
+            const qs = result.data.questions.map((q) => ({
+              id: q.id,
+              questionText: q.questionText,
+              optionA: q.optionA,
+              optionB: q.optionB,
+              optionC: q.optionC,
+              optionD: q.optionD,
+              correctOption: q.correctOption,
+              explanation: q.explanation,
+            }));
+            setQuestions(qs.slice(0, 10));
+            setPhase("quiz");
+            setTimerActive(true);
+          }
+        } else if (discipline) {
+          const result = await getQuestionsQuery.refetch();
+          if (result.data?.questions && result.data.questions.length > 0) {
+            setQuestions(result.data.questions.slice(0, 10));
+            const session = await startSession.mutateAsync({ sessionId, discipline });
+            setQuizSessionId(session.sessionId);
+            setPhase("quiz");
+            setTimerActive(true);
+          }
         }
       } catch (e) {
         console.error("Failed to load quiz", e);
@@ -151,7 +183,8 @@ export default function QuizScreen({ discipline, onBack, onFinish }: Props) {
       else setWrongCount(newWrong);
       setPointsDelta(delta);
 
-      if (quizSessionId) {
+      // Only track session for discipline quizzes (not custom)
+      if (quizSessionId && !isCustomQuiz) {
         await submitAnswer.mutateAsync({
           sessionId,
           quizSessionId,
@@ -181,18 +214,34 @@ export default function QuizScreen({ discipline, onBack, onFinish }: Props) {
 
   const handleFinish = async (finalScore: number, correct: number, wrong: number) => {
     setTimerActive(false);
+    // For custom quizzes, just show result without saving to DB session
+    if (isCustomQuiz) {
+      const quizResult: QuizResult = {
+        discipline: "matematica" as Discipline, // placeholder
+        score: finalScore,
+        correctAnswers: correct,
+        wrongAnswers: wrong,
+        pointsEarned: Math.max(0, finalScore),
+        newTotal: (player?.totalPoints ?? 0) + Math.max(0, finalScore),
+      };
+      setFinalResult(quizResult);
+      setPhase("result");
+      if (correct >= 8) setShowConfetti(true);
+      refreshPlayer();
+      return;
+    }
     if (!quizSessionId) return;
     try {
       const result = await finishSession.mutateAsync({
         sessionId,
         quizSessionId,
-        discipline,
+        discipline: discipline!,
         finalScore,
         correctAnswers: correct,
         wrongAnswers: wrong,
       });
       const quizResult: QuizResult = {
-        discipline,
+        discipline: discipline!,
         score: finalScore,
         correctAnswers: correct,
         wrongAnswers: wrong,
@@ -220,8 +269,8 @@ export default function QuizScreen({ discipline, onBack, onFinish }: Props) {
           animate={{ scale: [1, 1.1, 1] }}
           transition={{ duration: 1, repeat: Infinity }}
         >
-          <div className="text-6xl mb-4">{info.emoji}</div>
-          <p className="text-xl font-bold text-gray-700">Carregando {info.name}...</p>
+          <div className="text-6xl mb-4">{isCustomQuiz ? "📚" : info.emoji}</div>
+          <p className="text-xl font-bold text-gray-700">Carregando {isCustomQuiz ? "Quiz Personalizado" : info.name}...</p>
           <div className="mt-4 flex justify-center gap-2">
             {[0, 1, 2].map((i) => (
               <motion.div

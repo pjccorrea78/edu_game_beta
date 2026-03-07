@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/contexts/GameContext";
 import BlockyAvatar from "@/components/BlockyAvatar";
-import { Star, Trophy, ShoppingBag, BarChart2, Settings, Zap } from "lucide-react";
+import { Star, Trophy, ShoppingBag, BarChart2, Settings, Zap, BookOpen } from "lucide-react";
 
 type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
 
@@ -87,6 +87,7 @@ type Props = {
   onOpenShop: () => void;
   onOpenProgress: () => void;
   onOpenAvatar: () => void;
+  onOpenStudy: () => void;
 };
 
 function Building3D({
@@ -226,7 +227,7 @@ function Building3D({
   );
 }
 
-export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, onOpenAvatar }: Props) {
+export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, onOpenAvatar, onOpenStudy }: Props) {
   const { player } = useGame();
   const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
   const [completedDisciplines] = useState<string[]>([]);
@@ -477,7 +478,7 @@ export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, o
           {[
             { icon: <BarChart2 className="w-5 h-5" />, label: "Progresso", color: "#4ECDC4", onClick: onOpenProgress },
             { icon: <ShoppingBag className="w-5 h-5" />, label: "Loja", color: "#FF6B6B", onClick: onOpenShop },
-            { icon: <Trophy className="w-5 h-5" />, label: "Ranking", color: "#F7DC6F", onClick: onOpenProgress },
+            { icon: <BookOpen className="w-5 h-5" />, label: "Meu Material", color: "#7C3AED", onClick: onOpenStudy },
             { icon: <Settings className="w-5 h-5" />, label: "Avatar", color: "#A8E6CF", onClick: onOpenAvatar },
           ].map((btn, i) => (
             <motion.button

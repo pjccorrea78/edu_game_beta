@@ -52,3 +52,18 @@
 ## Testes
 - [x] Testes vitest para routers principais
 - [x] Validação de fluxo quiz completo
+
+## Material de Estudo Personalizado
+- [x] Schema: tabela study_materials (id, playerId, title, content, fileUrl, discipline, status, createdAt)
+- [x] Schema: tabela custom_quiz_questions (id, materialId, questionText, options, correctOption, explanation)
+- [x] Migration SQL aplicada
+- [x] Router: uploadMaterial (salvar texto/arquivo, disparar análise LLM)
+- [x] Router: analyzeMaterial (LLM analisa conteúdo e gera 10 perguntas estruturadas)
+- [x] Router: listMaterials (listar materiais enviados pelo aluno)
+- [x] Router: getCustomQuiz (buscar perguntas geradas para um material)
+- [x] Tela StudyMaterial: upload de texto com análise LLM
+- [x] Indicador de progresso durante análise LLM (loading animado)
+- [x] Exibição das perguntas geradas com opção de iniciar quiz
+- [x] Quiz personalizado usando perguntas do material (mesmo fluxo do QuizScreen)
+- [x] Botão "Meu Material" acessível no mapa e no menu de configurações
+- [x] Testes vitest para router de material de estudo
