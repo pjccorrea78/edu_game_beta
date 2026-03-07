@@ -88,6 +88,7 @@ type Props = {
   onOpenProgress: () => void;
   onOpenAvatar: () => void;
   onOpenStudy: () => void;
+  onOpenSchool: () => void;
 };
 
 function Building3D({
@@ -227,7 +228,7 @@ function Building3D({
   );
 }
 
-export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, onOpenAvatar, onOpenStudy }: Props) {
+export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, onOpenAvatar, onOpenStudy, onOpenSchool }: Props) {
   const { player } = useGame();
   const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
   const [completedDisciplines] = useState<string[]>([]);
@@ -404,6 +405,96 @@ export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, o
           completedDisciplines={completedDisciplines}
         />
       ))}
+
+      {/* Custom School Building */}
+      <motion.div
+        className="absolute cursor-pointer select-none z-20"
+        style={{ left: "38%", top: "18%" }}
+        whileHover={{ scale: 1.08, zIndex: 50 }}
+        whileTap={{ scale: 0.95 }}
+        animate={hoveredBuilding === "school" ? { y: -8 } : { y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        onClick={onOpenSchool}
+        onMouseEnter={() => setHoveredBuilding("school")}
+        onMouseLeave={() => setHoveredBuilding(null)}
+      >
+        <div className="relative" style={{ width: 120, height: 145 }}>
+          <svg viewBox="0 0 120 145" width="120" height="145">
+            {/* Shadow */}
+            <ellipse cx="60" cy="140" rx="48" ry="8" fill="rgba(0,0,0,0.2)" />
+            {/* Building body - violet/purple */}
+            <rect x="8" y="55" width="104" height="80" rx="4" fill="#7C3AED" />
+            {/* Side shading */}
+            <rect x="8" y="55" width="20" height="80" rx="4" fill="rgba(0,0,0,0.15)" />
+            {/* Top shading */}
+            <rect x="8" y="55" width="104" height="14" rx="4" fill="rgba(255,255,255,0.12)" />
+            {/* Roof - special star shape */}
+            <polygon points="4,57 60,6 116,57" fill="#4F46E5" />
+            <polygon points="4,57 60,6 32,57" fill="rgba(0,0,0,0.18)" />
+            {/* Star on roof */}
+            <text x="60" y="32" textAnchor="middle" fontSize="16" fill="#FFD700">⭐</text>
+            {/* Flag pole */}
+            <line x1="60" y1="6" x2="60" y2="57" stroke="rgba(255,255,255,0.3)" strokeWidth="2" />
+            {/* Windows - glowing yellow */}
+            <rect x="16" y="68" width="24" height="20" rx="3" fill="#FFF176" />
+            <rect x="80" y="68" width="24" height="20" rx="3" fill="#FFF176" />
+            <line x1="28" y1="68" x2="28" y2="88" stroke="rgba(0,0,0,0.2)" strokeWidth="1.5" />
+            <line x1="16" y1="78" x2="40" y2="78" stroke="rgba(0,0,0,0.2)" strokeWidth="1.5" />
+            <line x1="92" y1="68" x2="92" y2="88" stroke="rgba(0,0,0,0.2)" strokeWidth="1.5" />
+            <line x1="80" y1="78" x2="104" y2="78" stroke="rgba(0,0,0,0.2)" strokeWidth="1.5" />
+            {/* Window shine */}
+            <rect x="18" y="70" width="8" height="6" rx="1" fill="rgba(255,255,255,0.6)" />
+            <rect x="82" y="70" width="8" height="6" rx="1" fill="rgba(255,255,255,0.6)" />
+            {/* Second row windows */}
+            <rect x="16" y="96" width="24" height="18" rx="3" fill="#FFF176" />
+            <rect x="80" y="96" width="24" height="18" rx="3" fill="#FFF176" />
+            {/* Door - special arch */}
+            <rect x="44" y="104" width="32" height="31" rx="4" fill="#312E81" />
+            <path d="M 44 108 Q 60 96 76 108" fill="#312E81" />
+            <rect x="46" y="106" width="28" height="27" rx="3" fill="#3730A3" />
+            {/* Door knob */}
+            <circle cx="72" cy="121" r="2.5" fill="#FFD700" />
+            {/* Steps */}
+            <rect x="38" y="133" width="44" height="5" rx="2" fill="rgba(0,0,0,0.15)" />
+            <rect x="41" y="131" width="38" height="4" rx="2" fill="rgba(255,255,255,0.15)" />
+            {/* Sign board */}
+            <rect x="20" y="57" width="80" height="12" rx="3" fill="#FFD700" />
+            <text x="60" y="67" textAnchor="middle" fontSize="7" fill="#312E81" fontWeight="bold">
+              {player?.schoolName ? player.schoolName.slice(0, 18) : "Meu Prédio"}
+            </text>
+          </svg>
+          {/* Floating emoji */}
+          <motion.div
+            className="absolute -top-3 left-1/2 -translate-x-1/2 text-2xl"
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+          >
+            🏫
+          </motion.div>
+        </div>
+        {/* Label */}
+        <div className="text-center mt-1">
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full shadow-md" style={{ background: "#7C3AED", color: "white", textShadow: "0 1px 2px rgba(0,0,0,0.4)" }}>
+            {player?.schoolName ? player.schoolName.slice(0, 14) : "Meu Prédio"}
+          </span>
+        </div>
+        {/* Hover tooltip */}
+        <AnimatePresence>
+          {hoveredBuilding === "school" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.9 }}
+              className="absolute -top-16 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-xl px-3 py-2 text-center z-50 min-w-max"
+              style={{ border: "2px solid #7C3AED" }}
+            >
+              <p className="text-xs font-bold text-gray-800">🏫 {player?.schoolName ?? "Meu Prédio"}</p>
+              <p className="text-xs text-gray-500">Seus materiais de estudo</p>
+              <p className="text-xs font-semibold mt-1" style={{ color: "#7C3AED" }}>Clique para entrar! 📚</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
 
       {/* Player Avatar on map */}
       <motion.div

@@ -12,8 +12,18 @@ import QuizScreen from "./pages/QuizScreen";
 import AvatarShop from "./pages/AvatarShop";
 import ProgressPanel from "./pages/ProgressPanel";
 import StudyMaterial from "./pages/StudyMaterial";
+import SchoolBuilding from "./pages/SchoolBuilding";
 
-type Screen = "welcome" | "map" | "quiz" | "shop" | "progress" | "study" | "custom-quiz";
+type Screen =
+  | "welcome"
+  | "map"
+  | "quiz"
+  | "shop"
+  | "progress"
+  | "study"
+  | "custom-quiz"
+  | "school";
+
 type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
 
 function GameRouter() {
@@ -23,7 +33,6 @@ function GameRouter() {
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [customQuizMaterial, setCustomQuizMaterial] = useState<{ id: number; title: string } | null>(null);
 
-  // Check if player has already set a nickname (returning player)
   useEffect(() => {
     if (!isLoading && player) {
       const onboarded = localStorage.getItem("edugame_onboarded");
@@ -90,6 +99,12 @@ function GameRouter() {
     setScreen("custom-quiz");
   };
 
+  // When entering a room from SchoolBuilding, go directly to custom quiz
+  const handleEnterRoom = (materialId: number, title: string) => {
+    setCustomQuizMaterial({ id: materialId, title });
+    setScreen("custom-quiz");
+  };
+
   return (
     <div className="min-h-screen no-select">
       <AnimatePresence mode="wait">
@@ -120,6 +135,7 @@ function GameRouter() {
               onOpenProgress={() => setScreen("progress")}
               onOpenAvatar={() => setScreen("shop")}
               onOpenStudy={() => setScreen("study")}
+              onOpenSchool={() => setScreen("school")}
             />
           </motion.div>
         )}
@@ -176,8 +192,24 @@ function GameRouter() {
             className="min-h-screen"
           >
             <StudyMaterial
-              onBack={() => setScreen("map")}
+              onBack={() => setScreen("school")}
               onStartCustomQuiz={handleStartCustomQuiz}
+            />
+          </motion.div>
+        )}
+
+        {screen === "school" && (
+          <motion.div
+            key="school"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="min-h-screen"
+          >
+            <SchoolBuilding
+              onBack={() => setScreen("map")}
+              onEnterRoom={handleEnterRoom}
+              onAddMaterial={() => setScreen("study")}
             />
           </motion.div>
         )}
@@ -194,10 +226,10 @@ function GameRouter() {
               discipline={null}
               customMaterialId={customQuizMaterial.id}
               customTitle={customQuizMaterial.title}
-              onBack={() => setScreen("study")}
+              onBack={() => setScreen("school")}
               onFinish={() => {
                 setCustomQuizMaterial(null);
-                setScreen("map");
+                setScreen("school");
               }}
             />
           </motion.div>

@@ -10,6 +10,7 @@ import {
   updatePlayerAvatar,
   updatePlayerNickname,
   updatePlayerGuardianEmail,
+  updatePlayerSchoolName,
   getQuestionsByDiscipline,
   countQuestionsByDiscipline,
   createQuizSession,
@@ -83,6 +84,14 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const player = await getOrCreatePlayer(input.sessionId);
         await updatePlayerGuardianEmail(player.id, input.email);
+        return { success: true };
+      }),
+
+    updateSchoolName: publicProcedure
+      .input(z.object({ sessionId: z.string(), schoolName: z.string().min(1).max(64) }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        await updatePlayerSchoolName(player.id, input.schoolName);
         return { success: true };
       }),
 

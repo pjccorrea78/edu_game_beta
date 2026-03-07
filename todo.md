@@ -67,3 +67,19 @@
 - [x] Quiz personalizado usando perguntas do material (mesmo fluxo do QuizScreen)
 - [x] Botão "Meu Material" acessível no mapa e no menu de configurações
 - [x] Testes vitest para router de material de estudo
+
+## Prédio Personalizado da Escola
+
+- [x] Campo schoolName adicionado à tabela players
+- [x] Migration SQL aplicada
+- [x] Router player.updateSchoolName implementado
+- [x] Componente SchoolBuilding.tsx criado com fachada 3D do prédio
+- [x] Prédio personalizado visível no mapa (posição central, estilo roxo/violeta com estrela)
+- [x] Nome do prédio exibido no mapa e na fachada (placa dourada)
+- [x] Edição do nome do prédio diretamente na tela SchoolBuilding
+- [x] Salas de estudo em grid 2x2 com visual por disciplina
+- [x] Status badge (pronto, analisando, erro) por sala
+- [x] Botão "Nova Sala" para adicionar material
+- [x] Fluxo completo: mapa → prédio → sala → quiz personalizado
+- [x] Navegação integrada no App.tsx com nova tela "school"
+- [x] 17 testes passando

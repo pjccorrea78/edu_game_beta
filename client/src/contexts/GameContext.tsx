@@ -14,6 +14,7 @@ export type Player = {
   id: number;
   sessionId: string;
   nickname: string;
+  schoolName?: string | null;
   totalPoints: number;
   guardianEmail?: string | null;
   avatarConfig?: AvatarConfig | null;

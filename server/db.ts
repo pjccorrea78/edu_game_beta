@@ -120,6 +120,12 @@ export async function updatePlayerGuardianEmail(playerId: number, email: string)
   await db.update(players).set({ guardianEmail: email }).where(eq(players.id, playerId));
 }
 
+export async function updatePlayerSchoolName(playerId: number, schoolName: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(players).set({ schoolName }).where(eq(players.id, playerId));
+}
+
 // ─── Questions ────────────────────────────────────────────────────────────────
 export async function getQuestionsByDiscipline(
   discipline: Discipline,
