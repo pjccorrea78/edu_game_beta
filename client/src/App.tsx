@@ -13,6 +13,8 @@ import AvatarShop from "./pages/AvatarShop";
 import ProgressPanel from "./pages/ProgressPanel";
 import StudyMaterial from "./pages/StudyMaterial";
 import SchoolBuilding from "./pages/SchoolBuilding";
+import TeacherPanel from "./pages/TeacherPanel";
+import Achievements from "./pages/Achievements";
 
 type Screen =
   | "welcome"
@@ -22,7 +24,9 @@ type Screen =
   | "progress"
   | "study"
   | "custom-quiz"
-  | "school";
+  | "school"
+  | "teacher"
+  | "achievements";
 
 type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
 
@@ -136,6 +140,8 @@ function GameRouter() {
               onOpenAvatar={() => setScreen("shop")}
               onOpenStudy={() => setScreen("study")}
               onOpenSchool={() => setScreen("school")}
+              onOpenTeacher={() => setScreen("teacher")}
+              onOpenAchievements={() => setScreen("achievements")}
             />
           </motion.div>
         )}
@@ -232,6 +238,30 @@ function GameRouter() {
                 setScreen("school");
               }}
             />
+          </motion.div>
+        )}
+
+        {screen === "teacher" && (
+          <motion.div
+            key="teacher"
+            initial={{ opacity: 0, x: 60 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 60 }}
+            className="min-h-screen"
+          >
+            <TeacherPanel onBack={() => setScreen("map")} />
+          </motion.div>
+        )}
+
+        {screen === "achievements" && (
+          <motion.div
+            key="achievements"
+            initial={{ opacity: 0, x: -60 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -60 }}
+            className="min-h-screen"
+          >
+            <Achievements onBack={() => setScreen("map")} />
           </motion.div>
         )}
       </AnimatePresence>

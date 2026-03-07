@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/contexts/GameContext";
 import BlockyAvatar from "@/components/BlockyAvatar";
-import { Star, Trophy, ShoppingBag, BarChart2, Settings, Zap, BookOpen } from "lucide-react";
+import { Star, Trophy, ShoppingBag, BarChart2, Settings, Zap, BookOpen, GraduationCap } from "lucide-react";
 
 type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
 
@@ -89,6 +89,8 @@ type Props = {
   onOpenAvatar: () => void;
   onOpenStudy: () => void;
   onOpenSchool: () => void;
+  onOpenTeacher: () => void;
+  onOpenAchievements: () => void;
 };
 
 function Building3D({
@@ -228,7 +230,7 @@ function Building3D({
   );
 }
 
-export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, onOpenAvatar, onOpenStudy, onOpenSchool }: Props) {
+export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, onOpenAvatar, onOpenStudy, onOpenSchool, onOpenTeacher, onOpenAchievements }: Props) {
   const { player } = useGame();
   const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
   const [completedDisciplines] = useState<string[]>([]);
@@ -569,7 +571,9 @@ export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, o
           {[
             { icon: <BarChart2 className="w-5 h-5" />, label: "Progresso", color: "#4ECDC4", onClick: onOpenProgress },
             { icon: <ShoppingBag className="w-5 h-5" />, label: "Loja", color: "#FF6B6B", onClick: onOpenShop },
-            { icon: <BookOpen className="w-5 h-5" />, label: "Meu Material", color: "#7C3AED", onClick: onOpenStudy },
+            { icon: <Trophy className="w-5 h-5" />, label: "Conquistas", color: "#F59E0B", onClick: onOpenAchievements },
+            { icon: <BookOpen className="w-5 h-5" />, label: "Material", color: "#7C3AED", onClick: onOpenStudy },
+            { icon: <GraduationCap className="w-5 h-5" />, label: "Professor", color: "#3B82F6", onClick: onOpenTeacher },
             { icon: <Settings className="w-5 h-5" />, label: "Avatar", color: "#A8E6CF", onClick: onOpenAvatar },
           ].map((btn, i) => (
             <motion.button

@@ -13,6 +13,7 @@ import {
   customQuizQuestions,
   customQuizSessions,
   classCodes,
+  playerAchievements,
   type AvatarConfig,
   type Discipline,
   type InsertPlayer,
@@ -403,4 +404,56 @@ export async function getClassCodesByOwner(ownerId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(classCodes).where(eq(classCodes.ownerId, ownerId)).orderBy(desc(classCodes.createdAt)).limit(20);
+}
+
+// ─── Player Achievements ───────────────────────────────────────────────────────
+export async function getPlayerAchievements(playerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(playerAchievements).where(eq(playerAchievements.playerId, playerId));
+}
+
+export async function unlockAchievement(playerId: number, achievementKey: string) {
+  const db = await getDb();
+  if (!db) return;
+  // Check if already unlocked
+  const existing = await db.select().from(playerAchievements)
+    .where(and(eq(playerAchievements.playerId, playerId), eq(playerAchievements.achievementKey, achievementKey)))
+    .limit(1);
+  if (existing.length > 0) return false; // Already unlocked
+  await db.insert(playerAchievements).values({ playerId, achievementKey });
+  return true; // Newly unlocked
+}
+
+// ─── Teacher Panel ────────────────────────────────────────────────────────────
+export async function getTurmaProgress(materialId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  // Get all sessions for this material, joined with player nicknames
+  const sessions = await db.select({
+    id: customQuizSessions.id,
+    playerId: customQuizSessions.playerId,
+    nickname: customQuizSessions.nickname,
+    score: customQuizSessions.score,
+    correctAnswers: customQuizSessions.correctAnswers,
+    totalQuestions: customQuizSessions.totalQuestions,
+    pointsEarned: customQuizSessions.pointsEarned,
+    createdAt: customQuizSessions.createdAt,
+  }).from(customQuizSessions)
+    .where(eq(customQuizSessions.materialId, materialId))
+    .orderBy(desc(customQuizSessions.score))
+    .limit(100);
+  return sessions;
+}
+
+export async function getTurmaStats(materialId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const sessions = await getTurmaProgress(materialId);
+  if (sessions.length === 0) return { totalStudents: 0, avgScore: 0, avgAccuracy: 0, topScore: 0 };
+  const totalStudents = new Set(sessions.map(s => s.playerId)).size;
+  const avgScore = Math.round(sessions.reduce((a, s) => a + s.score, 0) / sessions.length);
+  const avgAccuracy = Math.round(sessions.reduce((a, s) => a + (s.correctAnswers / s.totalQuestions * 100), 0) / sessions.length);
+  const topScore = Math.max(...sessions.map(s => s.score));
+  return { totalStudents, avgScore, avgAccuracy, topScore };
 }

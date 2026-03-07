@@ -109,3 +109,32 @@
 - [x] Router: entrar em turma por código (importa material para o aluno)
 - [x] Botão "Turma" no SchoolBuilding com modal ClassCodeModal
 - [x] Fluxo gerar código + copiar + entrar com código
+
+## Painel do Professor
+
+- [x] Router: teacher.getTurmaProgress (recebe código, retorna progresso de todos os alunos)
+- [x] Router: teacher.getTurmaStats (médias, top alunos, disciplinas mais acessadas)
+- [x] Tela TeacherPanel.tsx com acesso via código de turma
+- [x] Tabela de alunos com pontuação, quizzes completados, % de acerto
+- [x] Gráfico de desempenho por disciplina
+- [x] Botão "Painel do Professor" acessível no mapa
+
+## Sistema de Vidas
+
+- [x] Estado de vidas (3 vidas) no QuizScreen
+- [x] Animação de perda de vida (coração quebrando)
+- [x] Game over antecipado quando vidas chegam a zero
+- [x] Tela de game over com pontuação parcial e opção de reiniciar
+- [x] HUD de vidas visível durante o quiz
+
+## Conquistas e Badges
+
+- [x] Schema: tabela achievements (id, key, title, description, icon, condition)
+- [x] Schema: tabela player_achievements (id, playerId, achievementKey, unlockedAt)
+- [x] Migration SQL aplicada
+- [x] Seed: 12 conquistas iniciais (por disciplina, pontos, streaks, loja)
+- [x] Router: achievements.list (listar conquistas com status desbloqueado)
+- [x] Router: achievements.check (verificar e desbloquear conquistas após eventos)
+- [x] Tela de conquistas no painel de progresso
+- [x] Toast de celebração ao desbloquear conquista
+- [x] Badge visual no avatar quando tem conquistas

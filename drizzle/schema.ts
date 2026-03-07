@@ -228,3 +228,14 @@ export const classCodes = mysqlTable("class_codes", {
 
 export type ClassCode = typeof classCodes.$inferSelect;
 export type InsertClassCode = typeof classCodes.$inferInsert;
+
+// ─── Player Achievements ────────────────────────────────────────────────────────────────
+export const playerAchievements = mysqlTable("player_achievements", {
+  id: int("id").autoincrement().primaryKey(),
+  playerId: int("playerId").notNull(),
+  achievementKey: varchar("achievementKey", { length: 64 }).notNull(),
+  unlockedAt: timestamp("unlockedAt").defaultNow().notNull(),
+});
+
+export type PlayerAchievement = typeof playerAchievements.$inferSelect;
+export type InsertPlayerAchievement = typeof playerAchievements.$inferInsert;

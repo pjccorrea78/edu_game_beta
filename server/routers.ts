@@ -38,6 +38,10 @@ import {
   getClassCodeByCode,
   incrementClassCodeUsage,
   getClassCodesByOwner,
+  getPlayerAchievements,
+  unlockAchievement,
+  getTurmaProgress,
+  getTurmaStats,
 } from "./db";
 import { players, equipmentItems } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -618,10 +622,9 @@ Retorne SOMENTE um JSON válido neste formato:
         let extractedText = "";
         try {
           const buffer = Buffer.from(input.pdfBase64, "base64");
-          const parser = new PDFParse({});
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const pdfData = await parser.getText(buffer as unknown as any);
-          extractedText = (pdfData.text ?? pdfData.pages?.map((p) => p.text).join(" ") ?? "").trim();
+          const parser = new PDFParse({ data: buffer });
+          const pdfData = await parser.getText();
+          extractedText = (pdfData.text ?? pdfData.pages?.map((p: { text: string }) => p.text).join(" ") ?? "").trim();
         } catch {
           throw new Error("Não foi possível ler o PDF. Verifique se o arquivo não está corrompido.");
         }
@@ -967,5 +970,107 @@ Retorne SOMENTE um JSON válido neste formato:
         return { codes };
       }),
   }),
+
+  // ─── Achievements ────────────────────────────────────────────────────────────
+  achievements: router({
+    // All achievement definitions (static catalog)
+    catalog: publicProcedure.query(() => {
+      return { achievements: ACHIEVEMENTS_CATALOG };
+    }),
+    // Player's unlocked achievements
+    myAchievements: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const unlocked = await getPlayerAchievements(player.id);
+        const unlockedKeys = new Set(unlocked.map(a => a.achievementKey));
+        const result = ACHIEVEMENTS_CATALOG.map(a => ({
+          ...a,
+          unlocked: unlockedKeys.has(a.key),
+          unlockedAt: unlocked.find(u => u.achievementKey === a.key)?.unlockedAt ?? null,
+        }));
+        return { achievements: result, totalUnlocked: unlocked.length };
+      }),
+    // Check and unlock achievements after an event
+    checkAndUnlock: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        event: z.enum(["quiz_complete", "purchase", "material_upload"]),
+        data: z.record(z.string(), z.unknown()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const newlyUnlocked: string[] = [];
+
+        // Get current state
+        const history = await getPlayerQuizHistory(player.id);
+        const owned = await getPlayerOwnedItems(player.id);
+        const allItems = await getAllEquipmentItems();
+
+        // Check each achievement condition
+        for (const achievement of ACHIEVEMENTS_CATALOG) {
+          let shouldUnlock = false;
+          switch (achievement.key) {
+            case "first_quiz": shouldUnlock = history.length >= 1; break;
+            case "quiz_5": shouldUnlock = history.length >= 5; break;
+            case "quiz_20": shouldUnlock = history.length >= 20; break;
+            case "points_100": shouldUnlock = player.totalPoints >= 100; break;
+            case "points_500": shouldUnlock = player.totalPoints >= 500; break;
+            case "points_1000": shouldUnlock = player.totalPoints >= 1000; break;
+            case "perfect_score": shouldUnlock = history.some(s => s.correctAnswers === s.totalQuestions && s.totalQuestions > 0); break;
+            case "first_item": shouldUnlock = owned.length >= 1; break;
+            case "collector": shouldUnlock = owned.length >= 5; break;
+            case "all_disciplines": {
+              const disciplines = new Set(history.map(s => s.discipline));
+              shouldUnlock = disciplines.size >= 5;
+              break;
+            }
+            case "material_master": shouldUnlock = input.event === "material_upload"; break;
+            case "streak_3": {
+              // 3 perfect scores in a row
+              const recent = history.slice(-3);
+              shouldUnlock = recent.length >= 3 && recent.every(s => s.correctAnswers === s.totalQuestions && s.totalQuestions > 0);
+              break;
+            }
+          }
+          if (shouldUnlock) {
+            const isNew = await unlockAchievement(player.id, achievement.key);
+            if (isNew) newlyUnlocked.push(achievement.key);
+          }
+        }
+        return { newlyUnlocked, achievements: newlyUnlocked.map(k => ACHIEVEMENTS_CATALOG.find(a => a.key === k)!) };
+      }),
+  }),
+
+  // ─── Teacher Panel ────────────────────────────────────────────────────────────
+  teacher: router({
+    // Get all student progress for a material (via class code)
+    getTurmaProgress: publicProcedure
+      .input(z.object({ code: z.string() }))
+      .query(async ({ input }) => {
+        const codeEntry = await getClassCodeByCode(input.code.toUpperCase());
+        if (!codeEntry) throw new Error("Código de turma não encontrado");
+        const sessions = await getTurmaProgress(codeEntry.materialId);
+        const stats = await getTurmaStats(codeEntry.materialId);
+        return { sessions, stats, materialTitle: codeEntry.title, code: codeEntry.code };
+      }),
+  }),
 });
+
+// ─── Achievements Catalog ─────────────────────────────────────────────────────
+const ACHIEVEMENTS_CATALOG = [
+  { key: "first_quiz", title: "Primeiro Passo", description: "Complete seu primeiro quiz", icon: "🎯", category: "quiz" },
+  { key: "quiz_5", title: "Estudante Dedicado", description: "Complete 5 quizzes", icon: "📚", category: "quiz" },
+  { key: "quiz_20", title: "Mestre dos Quizzes", description: "Complete 20 quizzes", icon: "🏆", category: "quiz" },
+  { key: "perfect_score", title: "Nota 10!", description: "Acerte todas as perguntas de um quiz", icon: "⭐", category: "quiz" },
+  { key: "streak_3", title: "Em Chamas!", description: "3 quizzes perfeitos seguidos", icon: "🔥", category: "quiz" },
+  { key: "points_100", title: "Primeiros Pontos", description: "Acumule 100 pontos", icon: "💰", category: "points" },
+  { key: "points_500", title: "Rico em Saber", description: "Acumule 500 pontos", icon: "💎", category: "points" },
+  { key: "points_1000", title: "Milionário do Conhecimento", description: "Acumule 1000 pontos", icon: "👑", category: "points" },
+  { key: "first_item", title: "Fashionista", description: "Compre seu primeiro equipamento", icon: "🛍️", category: "shop" },
+  { key: "collector", title: "Colecionador", description: "Tenha 5 equipamentos", icon: "🎒", category: "shop" },
+  { key: "all_disciplines", title: "Explorador Total", description: "Complete quizzes em todas as 5 disciplinas", icon: "🌍", category: "explore" },
+  { key: "material_master", title: "Estudioso", description: "Envie seu primeiro material de estudo", icon: "📄", category: "explore" },
+];
+
 export type AppRouter = typeof appRouter;

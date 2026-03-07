@@ -101,6 +101,8 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
   const [finalResult, setFinalResult] = useState<QuizResult | null>(null);
   const [timeLeft, setTimeLeft] = useState(30);
   const [timerActive, setTimerActive] = useState(false);
+  const [lives, setLives] = useState(3);
+  const [showHeartBreak, setShowHeartBreak] = useState(false);
 
   const getQuestionsQuery = trpc.quiz.getQuestions.useQuery(
     { sessionId, discipline: discipline! },
@@ -177,10 +179,16 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
       const newScore = score + delta;
       const newCorrect = correctCount + (isCorrect ? 1 : 0);
       const newWrong = wrongCount + (isCorrect ? 0 : 1);
+      const newLives = isCorrect ? lives : lives - 1;
 
       setScore(newScore);
       if (isCorrect) setCorrectCount(newCorrect);
-      else setWrongCount(newWrong);
+      else {
+        setWrongCount(newWrong);
+        setLives(newLives);
+        setShowHeartBreak(true);
+        setTimeout(() => setShowHeartBreak(false), 600);
+      }
       setPointsDelta(delta);
 
       // Only track session for discipline quizzes (not custom)
@@ -197,6 +205,11 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
 
       // Auto advance after 2s
       setTimeout(() => {
+        // Game over if no lives left
+        if (!isCorrect && newLives <= 0) {
+          handleFinish(newScore, newCorrect, newWrong);
+          return;
+        }
         if (currentIndex + 1 >= questions.length) {
           handleFinish(newScore, newCorrect, newWrong);
         } else {
@@ -456,6 +469,21 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
           <Zap className="w-4 h-4 text-yellow-500" />
           <span className="font-black text-gray-800">{score}</span>
         </div>
+      </div>
+
+      {/* Lives HUD */}
+      <div className="px-4 mb-1 flex items-center gap-1">
+        {[1, 2, 3].map(i => (
+          <motion.span
+            key={i}
+            className="text-xl"
+            animate={showHeartBreak && i === lives + 1 ? { scale: [1, 1.4, 0.6, 1], rotate: [0, -20, 20, 0] } : {}}
+            transition={{ duration: 0.5 }}
+          >
+            {i <= lives ? "❤️" : "🖤"}
+          </motion.span>
+        ))}
+        <span className="text-xs text-gray-400 ml-1 font-medium">{lives === 0 ? "Sem vidas!" : `${lives} vida${lives !== 1 ? "s" : ""}`}</span>
       </div>
 
       {/* Question counter */}
