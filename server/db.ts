@@ -1,11 +1,23 @@
-import { eq } from "drizzle-orm";
+import { and, eq, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import {
+  InsertUser,
+  users,
+  players,
+  questions,
+  quizSessions,
+  equipmentItems,
+  playerEquipment,
+  notifications,
+  type AvatarConfig,
+  type Discipline,
+  type InsertPlayer,
+  type InsertQuestion,
+} from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -18,75 +30,234 @@ export async function getDb() {
   return _db;
 }
 
+// ─── Users ────────────────────────────────────────────────────────────────────
 export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
-  }
-
+  if (!user.openId) throw new Error("User openId is required for upsert");
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
+  if (!db) return;
+  const values: InsertUser = { openId: user.openId };
+  const updateSet: Record<string, unknown> = {};
+  const textFields = ["name", "email", "loginMethod"] as const;
+  textFields.forEach((field) => {
+    const value = user[field];
+    if (value === undefined) return;
+    const normalized = value ?? null;
+    values[field] = normalized;
+    updateSet[field] = normalized;
+  });
+  if (user.lastSignedIn !== undefined) {
+    values.lastSignedIn = user.lastSignedIn;
+    updateSet.lastSignedIn = user.lastSignedIn;
   }
-
-  try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
-
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
+  if (user.role !== undefined) {
+    values.role = user.role;
+    updateSet.role = user.role;
+  } else if (user.openId === ENV.ownerOpenId) {
+    values.role = "admin";
+    updateSet.role = "admin";
   }
+  if (!values.lastSignedIn) values.lastSignedIn = new Date();
+  if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
+  await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
 }
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
+  if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ─── Players ──────────────────────────────────────────────────────────────────
+export async function getOrCreatePlayer(sessionId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await db
+    .select()
+    .from(players)
+    .where(eq(players.sessionId, sessionId))
+    .limit(1);
+  if (existing.length > 0) return existing[0];
+  await db.insert(players).values({ sessionId, nickname: "Jogador", totalPoints: 0 });
+  const created = await db
+    .select()
+    .from(players)
+    .where(eq(players.sessionId, sessionId))
+    .limit(1);
+  return created[0];
+}
+
+export async function updatePlayerPoints(playerId: number, pointsDelta: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(players)
+    .set({ totalPoints: sql`GREATEST(0, ${players.totalPoints} + ${pointsDelta})` })
+    .where(eq(players.id, playerId));
+  const updated = await db.select().from(players).where(eq(players.id, playerId)).limit(1);
+  return updated[0];
+}
+
+export async function updatePlayerAvatar(playerId: number, avatarConfig: AvatarConfig) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(players).set({ avatarConfig }).where(eq(players.id, playerId));
+}
+
+export async function updatePlayerNickname(playerId: number, nickname: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(players).set({ nickname }).where(eq(players.id, playerId));
+}
+
+export async function updatePlayerGuardianEmail(playerId: number, email: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(players).set({ guardianEmail: email }).where(eq(players.id, playerId));
+}
+
+// ─── Questions ────────────────────────────────────────────────────────────────
+export async function getQuestionsByDiscipline(
+  discipline: Discipline,
+  limit = 10,
+  difficulty?: "easy" | "medium" | "hard"
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const conditions = difficulty
+    ? and(eq(questions.discipline, discipline), eq(questions.difficulty, difficulty))
+    : eq(questions.discipline, discipline);
+  const all = await db.select().from(questions).where(conditions);
+  // Shuffle and take limit
+  const shuffled = all.sort(() => Math.random() - 0.5).slice(0, limit);
+  return shuffled;
+}
+
+export async function countQuestionsByDiscipline(discipline: Discipline) {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(questions)
+    .where(eq(questions.discipline, discipline));
+  return result[0]?.count ?? 0;
+}
+
+export async function insertQuestion(q: InsertQuestion) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(questions).values(q);
+}
+
+// ─── Quiz Sessions ────────────────────────────────────────────────────────────
+export async function createQuizSession(playerId: number, discipline: Discipline) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(quizSessions).values({ playerId, discipline, score: 0 });
+  const created = await db
+    .select()
+    .from(quizSessions)
+    .where(and(eq(quizSessions.playerId, playerId), eq(quizSessions.completed, false)))
+    .orderBy(desc(quizSessions.createdAt))
+    .limit(1);
+  return created[0];
+}
+
+export async function updateQuizSession(
+  sessionId: number,
+  data: {
+    score?: number;
+    correctAnswers?: number;
+    wrongAnswers?: number;
+    completed?: boolean;
+    pointsEarned?: number;
+    completedAt?: Date;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(quizSessions).set(data).where(eq(quizSessions.id, sessionId));
+}
+
+export async function getPlayerQuizHistory(playerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(quizSessions)
+    .where(and(eq(quizSessions.playerId, playerId), eq(quizSessions.completed, true)))
+    .orderBy(desc(quizSessions.createdAt))
+    .limit(20);
+}
+
+export async function getBestScoreByDiscipline(playerId: number, discipline: Discipline) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(quizSessions)
+    .where(
+      and(
+        eq(quizSessions.playerId, playerId),
+        eq(quizSessions.discipline, discipline),
+        eq(quizSessions.completed, true)
+      )
+    )
+    .orderBy(desc(quizSessions.score))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+// ─── Equipment ────────────────────────────────────────────────────────────────
+export async function getAllEquipmentItems() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(equipmentItems).orderBy(equipmentItems.pointsCost);
+}
+
+export async function getPlayerOwnedItems(playerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const owned = await db
+    .select({ itemId: playerEquipment.itemId })
+    .from(playerEquipment)
+    .where(eq(playerEquipment.playerId, playerId));
+  return owned.map((o) => o.itemId);
+}
+
+export async function purchaseItem(playerId: number, itemId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Check already owned
+  const existing = await db
+    .select()
+    .from(playerEquipment)
+    .where(and(eq(playerEquipment.playerId, playerId), eq(playerEquipment.itemId, itemId)))
+    .limit(1);
+  if (existing.length > 0) throw new Error("Item já adquirido");
+  await db.insert(playerEquipment).values({ playerId, itemId });
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+export async function createNotification(
+  playerId: number,
+  type: "discipline_complete" | "points_milestone" | "all_equipment",
+  message: string,
+  email?: string
+) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(notifications).values({ playerId, type, message, sentToEmail: email });
+}
+
+export async function markNotificationSent(notificationId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notifications).set({ sent: true }).where(eq(notifications.id, notificationId));
+}
+
+export async function getUnsentNotifications() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(notifications).where(eq(notifications.sent, false)).limit(50);
+}
