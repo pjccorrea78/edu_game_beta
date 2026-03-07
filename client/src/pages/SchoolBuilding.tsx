@@ -13,7 +13,13 @@ import {
   Pencil,
   ChevronRight,
   School,
+  Trophy,
+  Share2,
+  Users,
+  Copy,
+  LogIn,
 } from "lucide-react";
+import { toast } from "sonner";
 
 type Props = {
   onBack: () => void;
@@ -163,10 +169,234 @@ function Classroom3D({
   );
 }
 
+function RankingModal({ materialId, materialTitle, onClose }: { materialId: number; materialTitle: string; onClose: () => void }) {
+  const rankingQuery = trpc.ranking.getByMaterial.useQuery({ materialId });
+  const entries = rankingQuery.data?.entries ?? [];
+  const medals = ["🥇", "🥈", "🥉"];
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="bg-white rounded-t-3xl w-full max-w-md p-5 pb-8"
+        initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-yellow-500" /> Ranking — {materialTitle}
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+        </div>
+        {rankingQuery.isLoading ? (
+          <div className="flex justify-center py-8"><motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}><Trophy className="w-8 h-8 text-yellow-400" /></motion.div></div>
+        ) : entries.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="text-5xl mb-3">🏆</div>
+            <p className="text-gray-500 font-semibold">Nenhum resultado ainda.</p>
+            <p className="text-gray-400 text-sm">Seja o primeiro a completar este quiz!</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {entries.map((entry, i) => (
+              <motion.div
+                key={entry.id}
+                className={`flex items-center gap-3 p-3 rounded-2xl ${
+                  i === 0 ? "bg-yellow-50 border-2 border-yellow-200" :
+                  i === 1 ? "bg-gray-50 border-2 border-gray-200" :
+                  i === 2 ? "bg-orange-50 border-2 border-orange-200" :
+                  "bg-white border border-gray-100"
+                }`}
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: i * 0.07 }}
+              >
+                <span className="text-2xl w-8 text-center">{medals[i] ?? `#${i + 1}`}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-black text-gray-800 text-sm truncate">{entry.nickname ?? "Jogador"}</p>
+                  <p className="text-xs text-gray-400">{entry.correctAnswers}/{entry.totalQuestions} acertos</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-black text-lg" style={{ color: i === 0 ? "#F59E0B" : i === 1 ? "#6B7280" : i === 2 ? "#EA580C" : "#7C3AED" }}>
+                    {entry.score}
+                  </p>
+                  <p className="text-xs text-gray-400">pts</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function ClassCodeModal({ onClose, sessionId }: { onClose: () => void; sessionId: string }) {
+  const [mode, setMode] = useState<"menu" | "generate" | "join">("menu");
+  const [selectedMaterialId, setSelectedMaterialId] = useState<number | null>(null);
+  const [joinCode, setJoinCode] = useState("");
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const materialsQuery = trpc.studyMaterial.list.useQuery({ sessionId });
+  const generateMutation = trpc.classCode.generate.useMutation();
+  const joinMutation = trpc.classCode.join.useMutation();
+  const utils = trpc.useUtils();
+  const readyMaterials = (materialsQuery.data?.materials ?? []).filter((m) => m.status === "ready");
+
+  const handleGenerate = async () => {
+    if (!selectedMaterialId) return;
+    try {
+      const result = await generateMutation.mutateAsync({ sessionId, materialId: selectedMaterialId });
+      setGeneratedCode(result.code);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar código");
+    }
+  };
+
+  const handleJoin = async () => {
+    if (joinCode.trim().length < 4) { toast.error("Digite um código válido"); return; }
+    try {
+      const result = await joinMutation.mutateAsync({ sessionId, code: joinCode.trim() });
+      toast.success(`Sala "${result.title}" adicionada ao seu prédio! 🎉`);
+      utils.studyMaterial.list.invalidate();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Código inválido ou expirado");
+    }
+  };
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="bg-white rounded-t-3xl w-full max-w-md p-5 pb-8"
+        initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
+            <Users className="w-5 h-5 text-violet-500" /> Código de Turma
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+        </div>
+
+        {mode === "menu" && (
+          <div className="space-y-3">
+            <motion.button
+              className="w-full p-4 rounded-2xl bg-violet-50 border-2 border-violet-200 text-left flex items-center gap-3"
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              onClick={() => setMode("generate")}
+            >
+              <Share2 className="w-8 h-8 text-violet-500" />
+              <div>
+                <p className="font-black text-gray-800">Compartilhar Material</p>
+                <p className="text-xs text-gray-500">Gere um código para sua turma estudar o mesmo material</p>
+              </div>
+            </motion.button>
+            <motion.button
+              className="w-full p-4 rounded-2xl bg-blue-50 border-2 border-blue-200 text-left flex items-center gap-3"
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              onClick={() => setMode("join")}
+            >
+              <LogIn className="w-8 h-8 text-blue-500" />
+              <div>
+                <p className="font-black text-gray-800">Entrar em Turma</p>
+                <p className="text-xs text-gray-500">Digite o código do professor para acessar o material</p>
+              </div>
+            </motion.button>
+          </div>
+        )}
+
+        {mode === "generate" && (
+          <div>
+            <button onClick={() => { setMode("menu"); setGeneratedCode(null); setSelectedMaterialId(null); }} className="text-violet-600 font-bold text-sm mb-4 flex items-center gap-1"><ArrowLeft className="w-4 h-4" /> Voltar</button>
+            {generatedCode ? (
+              <div className="text-center">
+                <div className="text-5xl mb-3">🎉</div>
+                <p className="font-bold text-gray-600 mb-2">Código gerado!</p>
+                <div className="bg-violet-50 border-2 border-violet-300 rounded-2xl p-4 mb-4">
+                  <p className="font-black text-4xl text-violet-700 tracking-widest">{generatedCode}</p>
+                </div>
+                <motion.button
+                  className="flex items-center gap-2 mx-auto bg-violet-600 text-white px-4 py-2 rounded-xl font-bold text-sm"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => { navigator.clipboard.writeText(generatedCode); toast.success("Código copiado!"); }}
+                >
+                  <Copy className="w-4 h-4" /> Copiar Código
+                </motion.button>
+                <p className="text-xs text-gray-400 mt-3">Compartilhe este código com sua turma</p>
+              </div>
+            ) : (
+              <div>
+                <p className="font-bold text-gray-700 mb-3">Selecione o material para compartilhar:</p>
+                {readyMaterials.length === 0 ? (
+                  <p className="text-gray-400 text-sm text-center py-4">Nenhum material pronto para compartilhar</p>
+                ) : (
+                  <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                    {readyMaterials.map((m) => (
+                      <motion.button
+                        key={m.id}
+                        className={`w-full p-3 rounded-xl text-left border-2 transition-all ${
+                          selectedMaterialId === m.id ? "border-violet-400 bg-violet-50" : "border-gray-200 bg-white"
+                        }`}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setSelectedMaterialId(m.id)}
+                      >
+                        <p className="font-bold text-gray-800 text-sm">{m.title}</p>
+                        <p className="text-xs text-gray-400">{m.questionsGenerated} questões</p>
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
+                <motion.button
+                  className={`w-full py-3 rounded-2xl font-black text-white ${ selectedMaterialId ? "bg-violet-600" : "bg-gray-300 cursor-not-allowed" }`}
+                  whileTap={selectedMaterialId ? { scale: 0.97 } : {}}
+                  onClick={handleGenerate}
+                  disabled={!selectedMaterialId || generateMutation.isPending}
+                >
+                  {generateMutation.isPending ? "Gerando..." : "Gerar Código"}
+                </motion.button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {mode === "join" && (
+          <div>
+            <button onClick={() => setMode("menu")} className="text-violet-600 font-bold text-sm mb-4 flex items-center gap-1"><ArrowLeft className="w-4 h-4" /> Voltar</button>
+            <p className="font-bold text-gray-700 mb-3">Digite o código da turma:</p>
+            <input
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              placeholder="Ex: AB3C7X"
+              maxLength={8}
+              className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-violet-400 outline-none text-center text-2xl font-black tracking-widest text-violet-700 mb-4"
+            />
+            <motion.button
+              className={`w-full py-3 rounded-2xl font-black text-white ${ joinCode.trim().length >= 4 ? "bg-blue-600" : "bg-gray-300 cursor-not-allowed" }`}
+              whileTap={joinCode.trim().length >= 4 ? { scale: 0.97 } : {}}
+              onClick={handleJoin}
+              disabled={joinCode.trim().length < 4 || joinMutation.isPending}
+            >
+              {joinMutation.isPending ? "Entrando..." : "Entrar na Turma"}
+            </motion.button>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function SchoolBuilding({ onBack, onEnterRoom, onAddMaterial }: Props) {
   const { player, sessionId } = useGame();
   const [editingName, setEditingName] = useState(false);
   const [schoolNameInput, setSchoolNameInput] = useState("");
+  const [rankingMaterial, setRankingMaterial] = useState<{ id: number; title: string } | null>(null);
+  const [showClassCode, setShowClassCode] = useState(false);
 
   const materialsQuery = trpc.studyMaterial.list.useQuery({ sessionId });
   const updateSchoolName = trpc.player.updateSchoolName.useMutation({
@@ -185,6 +415,7 @@ export default function SchoolBuilding({ onBack, onEnterRoom, onAddMaterial }: P
   };
 
   return (
+    <>
     <div
       className="min-h-screen flex flex-col"
       style={{ background: "linear-gradient(180deg, #7C3AED22 0%, #f8f9ff 30%)" }}
@@ -339,10 +570,20 @@ export default function SchoolBuilding({ onBack, onEnterRoom, onAddMaterial }: P
         </motion.div>
       </div>
 
-      {/* Rooms grid */}
+        {/* Rooms grid */}
       <div className="flex-1 px-4 pb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-black text-gray-700 text-base">Salas de Estudo</h3>
+        {/* Action buttons row */}
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="font-black text-gray-700 text-base flex-1">Salas de Estudo</h3>
+          <motion.button
+            className="flex items-center gap-1.5 bg-amber-500 text-white px-3 py-1.5 rounded-xl text-sm font-bold shadow"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowClassCode(true)}
+          >
+            <Users className="w-4 h-4" />
+            Turma
+          </motion.button>
           <motion.button
             className="flex items-center gap-1.5 bg-violet-600 text-white px-3 py-1.5 rounded-xl text-sm font-bold shadow"
             whileHover={{ scale: 1.05 }}
@@ -387,12 +628,24 @@ export default function SchoolBuilding({ onBack, onEnterRoom, onAddMaterial }: P
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {materials.map((material, i) => (
-              <Classroom3D
-                key={material.id}
-                material={material}
-                index={i}
-                onClick={() => onEnterRoom(material.id, material.title)}
-              />
+              <div key={material.id} className="relative">
+                <Classroom3D
+                  material={material}
+                  index={i}
+                  onClick={() => onEnterRoom(material.id, material.title)}
+                />
+                {material.status === "ready" && (
+                  <motion.button
+                    className="absolute top-2 right-2 w-7 h-7 bg-yellow-400 rounded-full flex items-center justify-center shadow-md z-10"
+                    whileHover={{ scale: 1.15 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => { e.stopPropagation(); setRankingMaterial({ id: material.id, title: material.title }); }}
+                    title="Ver Ranking"
+                  >
+                    <Trophy className="w-3.5 h-3.5 text-white" />
+                  </motion.button>
+                )}
+              </div>
             ))}
 
             {/* Add new room card */}
@@ -414,5 +667,23 @@ export default function SchoolBuilding({ onBack, onEnterRoom, onAddMaterial }: P
         )}
       </div>
     </div>
+
+      {/* Modals */}
+      <AnimatePresence>
+        {rankingMaterial && (
+          <RankingModal
+            materialId={rankingMaterial.id}
+            materialTitle={rankingMaterial.title}
+            onClose={() => setRankingMaterial(null)}
+          />
+        )}
+        {showClassCode && (
+          <ClassCodeModal
+            sessionId={sessionId}
+            onClose={() => setShowClassCode(false)}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }

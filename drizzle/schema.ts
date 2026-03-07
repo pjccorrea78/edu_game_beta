@@ -196,3 +196,35 @@ export const customQuizQuestions = mysqlTable("custom_quiz_questions", {
 
 export type CustomQuizQuestion = typeof customQuizQuestions.$inferSelect;
 export type InsertCustomQuizQuestion = typeof customQuizQuestions.$inferInsert;
+
+// ─── Custom Quiz Sessions (results for personal material quizzes) ─────────────
+export const customQuizSessions = mysqlTable("custom_quiz_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  playerId: int("playerId").notNull(),
+  materialId: int("materialId").notNull(),
+  score: int("score").default(0).notNull(),
+  correctAnswers: int("correctAnswers").default(0).notNull(),
+  wrongAnswers: int("wrongAnswers").default(0).notNull(),
+  totalQuestions: int("totalQuestions").default(10).notNull(),
+  pointsEarned: int("pointsEarned").default(0).notNull(),
+  nickname: varchar("nickname", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CustomQuizSession = typeof customQuizSessions.$inferSelect;
+export type InsertCustomQuizSession = typeof customQuizSessions.$inferInsert;
+
+// ─── Class Codes (teacher shares material with students) ──────────────────────
+export const classCodes = mysqlTable("class_codes", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 8 }).notNull().unique(),
+  ownerId: int("ownerId").notNull(),
+  materialId: int("materialId").notNull(),
+  title: varchar("title", { length: 256 }).notNull(),
+  usageCount: int("usageCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt"),
+});
+
+export type ClassCode = typeof classCodes.$inferSelect;
+export type InsertClassCode = typeof classCodes.$inferInsert;

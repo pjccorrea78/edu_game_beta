@@ -11,12 +11,16 @@ import {
   notifications,
   studyMaterials,
   customQuizQuestions,
+  customQuizSessions,
+  classCodes,
   type AvatarConfig,
   type Discipline,
   type InsertPlayer,
   type InsertQuestion,
   type InsertStudyMaterial,
   type InsertCustomQuizQuestion,
+  type InsertCustomQuizSession,
+  type InsertClassCode,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -341,4 +345,62 @@ export async function deleteCustomQuizQuestions(materialId: number) {
   const db = await getDb();
   if (!db) return;
   await db.delete(customQuizQuestions).where(eq(customQuizQuestions.materialId, materialId));
+}
+
+// ─── Custom Quiz Sessions (ranking) ────────────────────────────────────────────
+export async function createCustomQuizSession(data: InsertCustomQuizSession) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(customQuizSessions).values(data);
+}
+
+export async function getRankingByMaterial(materialId: number, limit = 10) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(customQuizSessions)
+    .where(eq(customQuizSessions.materialId, materialId))
+    .orderBy(desc(customQuizSessions.score), desc(customQuizSessions.correctAnswers))
+    .limit(limit);
+}
+
+export async function getPlayerBestByMaterial(playerId: number, materialId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(customQuizSessions)
+    .where(and(eq(customQuizSessions.playerId, playerId), eq(customQuizSessions.materialId, materialId)))
+    .orderBy(desc(customQuizSessions.score))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+// ─── Class Codes ───────────────────────────────────────────────────────────────────────
+export async function createClassCode(data: InsertClassCode) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(classCodes).values(data);
+  const result = await db.select().from(classCodes).where(eq(classCodes.code, data.code)).limit(1);
+  return result[0];
+}
+
+export async function getClassCodeByCode(code: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(classCodes).where(eq(classCodes.code, code.toUpperCase())).limit(1);
+  return result[0] ?? null;
+}
+
+export async function incrementClassCodeUsage(codeId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(classCodes).set({ usageCount: sql`${classCodes.usageCount} + 1` }).where(eq(classCodes.id, codeId));
+}
+
+export async function getClassCodesByOwner(ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(classCodes).where(eq(classCodes.ownerId, ownerId)).orderBy(desc(classCodes.createdAt)).limit(20);
 }

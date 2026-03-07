@@ -83,3 +83,29 @@
 - [x] Fluxo completo: mapa → prédio → sala → quiz personalizado
 - [x] Navegação integrada no App.tsx com nova tela "school"
 - [x] 17 testes passando
+
+## Upload de PDF
+
+- [x] Instalar pdf-parse para extração de texto no servidor
+- [x] Endpoint tRPC: submitPdf (recebe base64, extrai texto, salva material)
+- [x] Frontend: toggle texto/PDF na tela StudyMaterial
+- [x] Preview do nome do arquivo selecionado
+- [x] Indicador de progresso durante upload e extração
+
+## Ranking do Prédio
+
+- [x] Schema: tabela custom_quiz_sessions (id, playerId, materialId, score, correctAnswers, completedAt)
+- [x] Migration SQL aplicada
+- [x] Router: salvar resultado de quiz personalizado
+- [x] Router: buscar ranking por materialId (top 10)
+- [x] Tela SchoolBuilding: botão troféu em cada sala pronta
+- [x] Modal RankingModal com medalhas (ouro, prata, bronze) para top 3
+
+## Código de Turma
+
+- [x] Schema: tabela class_codes (id, code, ownerId, materialId, title, createdAt, expiresAt)
+- [x] Migration SQL aplicada
+- [x] Router: gerar código de turma (6 caracteres únicos)
+- [x] Router: entrar em turma por código (importa material para o aluno)
+- [x] Botão "Turma" no SchoolBuilding com modal ClassCodeModal
+- [x] Fluxo gerar código + copiar + entrar com código

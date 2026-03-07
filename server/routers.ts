@@ -4,6 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
+import { PDFParse } from "pdf-parse";
 import {
   getOrCreatePlayer,
   updatePlayerPoints,
@@ -30,6 +31,13 @@ import {
   insertCustomQuizQuestions,
   getCustomQuizQuestions,
   deleteCustomQuizQuestions,
+  createCustomQuizSession,
+  getRankingByMaterial,
+  getPlayerBestByMaterial,
+  createClassCode,
+  getClassCodeByCode,
+  incrementClassCodeUsage,
+  getClassCodesByOwner,
 } from "./db";
 import { players, equipmentItems } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -596,6 +604,108 @@ Retorne SOMENTE um JSON válido neste formato:
         }
       }),
 
+    // Upload PDF material - receives base64, extracts text, then analyzes
+    submitPdf: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        title: z.string().min(1).max(256),
+        pdfBase64: z.string().min(10),
+        discipline: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        // Extract text from PDF
+        let extractedText = "";
+        try {
+          const buffer = Buffer.from(input.pdfBase64, "base64");
+          const parser = new PDFParse({});
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const pdfData = await parser.getText(buffer as unknown as any);
+          extractedText = (pdfData.text ?? pdfData.pages?.map((p) => p.text).join(" ") ?? "").trim();
+        } catch {
+          throw new Error("Não foi possível ler o PDF. Verifique se o arquivo não está corrompido.");
+        }
+        if (extractedText.length < 50) throw new Error("PDF sem texto suficiente para análise.");
+        // Create material with extracted text
+        const material = await createStudyMaterial({
+          playerId: player.id,
+          title: input.title,
+          contentText: extractedText.slice(0, 50000),
+          fileType: "pdf",
+          status: "analyzing",
+          discipline: input.discipline,
+        });
+        if (!material) throw new Error("Falha ao criar material");
+        // Analyze with LLM
+        try {
+          const prompt = `Você é um professor especialista em educação infantil (5-12 anos).\n\nAnalise o seguinte material de estudo extraído de um PDF e gere exatamente 10 perguntas de múltipla escolha em português brasileiro.\n\nMATERIAL:\n${extractedText.slice(0, 8000)}\n\nRegras:\n- Cada pergunta deve ter 4 alternativas (A, B, C, D)\n- Apenas UMA alternativa correta\n- Linguagem simples e adequada para crianças de 5-12 anos\n- Perguntas devem cobrir os principais conceitos do material\n- Inclua uma explicação breve da resposta correta`;
+          const llmResponse = await invokeLLM({
+            messages: [
+              { role: "system", content: "Você é um professor especialista que gera quiz educativos. Retorne APENAS JSON válido." },
+              { role: "user", content: prompt },
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "quiz_questions",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    questions: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          questionText: { type: "string" },
+                          optionA: { type: "string" },
+                          optionB: { type: "string" },
+                          optionC: { type: "string" },
+                          optionD: { type: "string" },
+                          correctOption: { type: "string", enum: ["A","B","C","D"] },
+                          explanation: { type: "string" },
+                        },
+                        required: ["questionText","optionA","optionB","optionC","optionD","correctOption","explanation"],
+                        additionalProperties: false,
+                      },
+                    },
+                  },
+                  required: ["questions"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          });
+          const rawContent = llmResponse.choices[0]?.message?.content;
+          const content = typeof rawContent === "string" ? rawContent : null;
+          if (!content) throw new Error("LLM não retornou resposta");
+          let parsed: { questions: Array<{ questionText: string; optionA: string; optionB: string; optionC: string; optionD: string; correctOption: string; explanation: string }> };
+          try { parsed = JSON.parse(content); } catch { throw new Error("LLM returned invalid JSON"); }
+          const validQuestions = (parsed.questions ?? []).slice(0, 10).filter(
+            (q) => q.questionText && ["A","B","C","D"].includes(q.correctOption)
+          );
+          await deleteCustomQuizQuestions(material.id);
+          await insertCustomQuizQuestions(
+            validQuestions.map((q) => ({
+              materialId: material.id,
+              playerId: player.id,
+              questionText: q.questionText,
+              optionA: q.optionA,
+              optionB: q.optionB,
+              optionC: q.optionC,
+              optionD: q.optionD,
+              correctOption: q.correctOption as "A"|"B"|"C"|"D",
+              explanation: q.explanation,
+            }))
+          );
+          await updateStudyMaterialStatus(material.id, "ready", validQuestions.length);
+          return { materialId: material.id, status: "ready" as const, questionsGenerated: validQuestions.length, extractedChars: extractedText.length };
+        } catch (err) {
+          await updateStudyMaterialStatus(material.id, "error", 0);
+          throw new Error(`Análise falhou: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
+        }
+      }),
+
     // List all materials for a player
     list: publicProcedure
       .input(z.object({ sessionId: z.string() }))
@@ -729,6 +839,132 @@ Retorne SOMENTE um JSON válido neste formato:
           await updateStudyMaterialStatus(input.materialId, "error", 0);
           throw new Error(`Análise falhou: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
         }
+      }),
+  }),
+
+  // ─── Ranking ────────────────────────────────────────────────────────────────────────
+  ranking: router({
+    // Save quiz result and update ranking
+    saveResult: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        materialId: z.number(),
+        score: z.number(),
+        correctAnswers: z.number(),
+        wrongAnswers: z.number(),
+        totalQuestions: z.number(),
+        pointsEarned: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        await createCustomQuizSession({
+          playerId: player.id,
+          materialId: input.materialId,
+          score: input.score,
+          correctAnswers: input.correctAnswers,
+          wrongAnswers: input.wrongAnswers,
+          totalQuestions: input.totalQuestions,
+          pointsEarned: input.pointsEarned,
+          nickname: player.nickname,
+        });
+        return { success: true };
+      }),
+
+    // Get top 10 ranking for a material
+    getByMaterial: publicProcedure
+      .input(z.object({ materialId: z.number() }))
+      .query(async ({ input }) => {
+        const entries = await getRankingByMaterial(input.materialId, 10);
+        return { entries };
+      }),
+
+    // Get player's best result for a material
+    getPlayerBest: publicProcedure
+      .input(z.object({ sessionId: z.string(), materialId: z.number() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const best = await getPlayerBestByMaterial(player.id, input.materialId);
+        return { best };
+      }),
+  }),
+
+  // ─── Class Codes ────────────────────────────────────────────────────────────────────
+  classCode: router({
+    // Generate a class code for a material (any player can share)
+    generate: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        materialId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const material = await getStudyMaterialById(input.materialId);
+        if (!material) throw new Error("Material não encontrado");
+        if (material.status !== "ready") throw new Error("Material ainda não está pronto");
+        // Generate unique 6-char uppercase code
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let code = "";
+        for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+        const entry = await createClassCode({
+          code,
+          ownerId: player.id,
+          materialId: input.materialId,
+          title: material.title,
+        });
+        return { code: entry?.code ?? code, materialTitle: material.title };
+      }),
+
+    // Join a class using a code (copies material + questions to the player)
+    join: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        code: z.string().min(4).max(8),
+      }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const entry = await getClassCodeByCode(input.code.trim().toUpperCase());
+        if (!entry) throw new Error("Código de turma inválido ou expirado");
+        // Check expiry
+        if (entry.expiresAt && new Date() > entry.expiresAt) throw new Error("Código expirado");
+        // Get original questions
+        const origQuestions = await getCustomQuizQuestions(entry.materialId);
+        if (origQuestions.length === 0) throw new Error("Material sem perguntas geradas");
+        // Create a copy of the material for this player
+        const newMaterial = await createStudyMaterial({
+          playerId: player.id,
+          title: `🏫 ${entry.title}`,
+          contentText: null,
+          fileType: "text",
+          status: "ready",
+          discipline: null,
+          questionsGenerated: origQuestions.length,
+        });
+        if (!newMaterial) throw new Error("Falha ao copiar material");
+        // Copy questions
+        await insertCustomQuizQuestions(
+          origQuestions.map((q) => ({
+            materialId: newMaterial.id,
+            playerId: player.id,
+            questionText: q.questionText,
+            optionA: q.optionA,
+            optionB: q.optionB,
+            optionC: q.optionC,
+            optionD: q.optionD,
+            correctOption: q.correctOption,
+            explanation: q.explanation,
+          }))
+        );
+        await incrementClassCodeUsage(entry.id);
+        return { success: true, materialId: newMaterial.id, title: newMaterial.title };
+      }),
+
+    // List codes generated by the player
+    listMyCodes: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const codes = await getClassCodesByOwner(player.id);
+        return { codes };
       }),
   }),
 });

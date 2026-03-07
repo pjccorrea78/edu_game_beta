@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
 import { useGame } from "@/contexts/GameContext";
 import {
   ArrowLeft, BookOpen, Upload, Sparkles, CheckCircle,
   AlertCircle, RefreshCw, Play, FileText, Clock,
-  ChevronRight, Trash2, Eye, Zap
+  ChevronRight, Trash2, Eye, Zap, FileUp, Type
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,18 +41,70 @@ export default function StudyMaterial({ onBack, onStartCustomQuiz }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewMaterialId, setPreviewMaterialId] = useState<number | null>(null);
   const [charCount, setCharCount] = useState(0);
+  const [inputMode, setInputMode] = useState<"text" | "pdf">("text");
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfBase64, setPdfBase64] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const listQuery = trpc.studyMaterial.list.useQuery({ sessionId });
   const submitMaterial = trpc.studyMaterial.submit.useMutation();
+  const submitPdfMutation = trpc.studyMaterial.submitPdf.useMutation();
   const reanalyzeMutation = trpc.studyMaterial.reanalyze.useMutation();
   const previewQuery = trpc.studyMaterial.getQuestions.useQuery(
     { sessionId, materialId: previewMaterialId! },
     { enabled: previewMaterialId !== null }
   );
 
+  const handlePdfSelect = (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("PDF muito grande. Máximo 10MB.");
+      return;
+    }
+    setPdfFile(file);
+    if (!title.trim()) setTitle(file.name.replace(/\.pdf$/i, ""));
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      // Remove data:application/pdf;base64, prefix
+      const base64 = result.split(",")[1] ?? result;
+      setPdfBase64(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async () => {
-    if (!title.trim() || contentText.trim().length < 10) {
-      toast.error("Preencha o título e o conteúdo (mínimo 10 caracteres)");
+    if (!title.trim()) {
+      toast.error("Preencha o título do material");
+      return;
+    }
+    if (inputMode === "pdf") {
+      if (!pdfBase64) {
+        toast.error("Selecione um arquivo PDF");
+        return;
+      }
+      setIsSubmitting(true);
+      setView("analyzing");
+      try {
+        const result = await submitPdfMutation.mutateAsync({
+          sessionId,
+          title: title.trim(),
+          pdfBase64,
+          discipline: discipline || undefined,
+        });
+        toast.success(`PDF analisado! ${result.questionsGenerated} perguntas geradas 🎉`);
+        setView("list");
+        listQuery.refetch();
+        setTitle(""); setPdfFile(null); setPdfBase64(null); setDiscipline("");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro ao analisar PDF");
+        setView("new");
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+    if (contentText.trim().length < 10) {
+      toast.error("Preencha o conteúdo (mínimo 10 caracteres)");
       return;
     }
     setIsSubmitting(true);
@@ -339,67 +391,122 @@ export default function StudyMaterial({ onBack, onStartCustomQuiz }: Props) {
                   </div>
                 </div>
 
-                {/* Content text area */}
+                {/* Input mode toggle */}
                 <div className="mb-4">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      📝 Conteúdo do Material
-                    </label>
-                    <span className={`text-xs font-semibold ${charCount > 45000 ? "text-red-500" : "text-gray-400"}`}>
-                      {charCount.toLocaleString()} / 50.000
-                    </span>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">📂 Tipo de Entrada</label>
+                  <div className="flex gap-2">
+                    <motion.button
+                      className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 border-2 transition-all ${
+                        inputMode === "text" ? "border-violet-400 bg-violet-50 text-violet-700" : "border-gray-200 bg-gray-50 text-gray-500"
+                      }`}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => setInputMode("text")}
+                    >
+                      <Type className="w-4 h-4" /> Colar Texto
+                    </motion.button>
+                    <motion.button
+                      className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 border-2 transition-all ${
+                        inputMode === "pdf" ? "border-violet-400 bg-violet-50 text-violet-700" : "border-gray-200 bg-gray-50 text-gray-500"
+                      }`}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => setInputMode("pdf")}
+                    >
+                      <FileUp className="w-4 h-4" /> Upload PDF
+                    </motion.button>
                   </div>
-                  <textarea
-                    value={contentText}
-                    onChange={(e) => {
-                      setContentText(e.target.value);
-                      setCharCount(e.target.value.length);
-                    }}
-                    placeholder="Cole aqui o texto do seu material de estudo...
-
-Pode ser:
-• Texto de apostila ou livro
-• Resumo de aula
-• Anotações do caderno
-• Qualquer conteúdo que você quer estudar
-
-A IA vai analisar e criar perguntas personalizadas!"
-                    maxLength={50000}
-                    rows={10}
-                    className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-violet-400 outline-none text-sm text-gray-800 transition-colors resize-none leading-relaxed"
-                  />
-                  {contentText.length > 0 && contentText.length < 10 && (
-                    <p className="text-xs text-red-500 mt-1">Mínimo de 10 caracteres</p>
-                  )}
                 </div>
+
+                {/* Content input based on mode */}
+                {inputMode === "text" ? (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sm font-bold text-gray-700">📝 Conteúdo do Material</label>
+                      <span className={`text-xs font-semibold ${charCount > 45000 ? "text-red-500" : "text-gray-400"}`}>
+                        {charCount.toLocaleString()} / 50.000
+                      </span>
+                    </div>
+                    <textarea
+                      value={contentText}
+                      onChange={(e) => { setContentText(e.target.value); setCharCount(e.target.value.length); }}
+                      placeholder={"Cole aqui o texto do seu material de estudo...\n\nPode ser:\n• Texto de apostila ou livro\n• Resumo de aula\n• Anotações do caderno"}
+                      maxLength={50000}
+                      rows={10}
+                      className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-violet-400 outline-none text-sm text-gray-800 transition-colors resize-none leading-relaxed"
+                    />
+                    {contentText.length > 0 && contentText.length < 10 && (
+                      <p className="text-xs text-red-500 mt-1">Mínimo de 10 caracteres</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mb-4">
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5">📄 Arquivo PDF</label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePdfSelect(f); }}
+                    />
+                    {pdfFile ? (
+                      <div className="flex items-center gap-3 p-4 bg-green-50 border-2 border-green-200 rounded-2xl">
+                        <div className="text-3xl">📄</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-green-800 truncate text-sm">{pdfFile.name}</p>
+                          <p className="text-xs text-green-600">{(pdfFile.size / 1024).toFixed(0)} KB · PDF pronto para análise</p>
+                        </div>
+                        <motion.button
+                          className="text-red-400 hover:text-red-600"
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => { setPdfFile(null); setPdfBase64(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </motion.button>
+                      </div>
+                    ) : (
+                      <motion.button
+                        className="w-full py-10 rounded-2xl border-2 border-dashed border-violet-300 bg-violet-50 flex flex-col items-center gap-2 text-violet-600"
+                        whileHover={{ scale: 1.01, borderColor: "#7C3AED" }}
+                        whileTap={{ scale: 0.99 }}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <FileUp className="w-8 h-8" />
+                        <span className="font-bold text-sm">Clique para selecionar PDF</span>
+                        <span className="text-xs text-violet-400">Máximo 10MB</span>
+                      </motion.button>
+                    )}
+                  </div>
+                )}
 
                 {/* Tips */}
                 <div className="bg-violet-50 rounded-2xl p-3 mb-5">
                   <p className="text-xs font-bold text-violet-700 mb-1">💡 Dicas para melhores resultados:</p>
                   <ul className="text-xs text-violet-600 space-y-0.5">
-                    <li>• Quanto mais texto, mais perguntas variadas serão geradas</li>
-                    <li>• Textos entre 200-5000 palavras funcionam melhor</li>
-                    <li>• Pode colar texto de PDF, livro ou apostila</li>
+                    {inputMode === "text" ? (
+                      <><li>• Textos entre 200-5000 palavras funcionam melhor</li><li>• Pode colar texto de PDF, livro ou apostila</li></>
+                    ) : (
+                      <><li>• PDFs com texto selecionável funcionam melhor</li><li>• PDFs escaneados (imagem) podem não funcionar</li><li>• Máximo 10MB por arquivo</li></>
+                    )}
                   </ul>
                 </div>
 
                 {/* Submit button */}
-                <motion.button
-                  className={`w-full py-4 rounded-2xl font-black text-white text-lg flex items-center justify-center gap-3 shadow-xl ${
-                    title.trim() && contentText.trim().length >= 10
-                      ? "opacity-100"
-                      : "opacity-50 cursor-not-allowed"
-                  }`}
-                  style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)" }}
-                  whileHover={title.trim() && contentText.trim().length >= 10 ? { scale: 1.02 } : {}}
-                  whileTap={title.trim() && contentText.trim().length >= 10 ? { scale: 0.98 } : {}}
-                  onClick={handleSubmit}
-                  disabled={!title.trim() || contentText.trim().length < 10 || isSubmitting}
-                >
-                  <Sparkles className="w-5 h-5" />
-                  Analisar com IA e Gerar Quiz
-                  <ChevronRight className="w-5 h-5" />
-                </motion.button>
+                {(() => {
+                  const isReady = title.trim() && (inputMode === "pdf" ? !!pdfBase64 : contentText.trim().length >= 10);
+                  return (
+                    <motion.button
+                      className={`w-full py-4 rounded-2xl font-black text-white text-lg flex items-center justify-center gap-3 shadow-xl ${isReady ? "opacity-100" : "opacity-50 cursor-not-allowed"}`}
+                      style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)" }}
+                      whileHover={isReady ? { scale: 1.02 } : {}}
+                      whileTap={isReady ? { scale: 0.98 } : {}}
+                      onClick={handleSubmit}
+                      disabled={!isReady || isSubmitting}
+                    >
+                      {inputMode === "pdf" ? <FileUp className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+                      {inputMode === "pdf" ? "Analisar PDF com IA" : "Analisar com IA e Gerar Quiz"}
+                      <ChevronRight className="w-5 h-5" />
+                    </motion.button>
+                  );
+                })()}
               </div>
             </motion.div>
           )}
