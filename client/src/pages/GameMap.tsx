@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/contexts/GameContext";
 import BlockyAvatar from "@/components/BlockyAvatar";
-import { Star, Trophy, ShoppingBag, BarChart2, Settings, Zap, BookOpen, GraduationCap } from "lucide-react";
+import { Star, Trophy, ShoppingBag, BarChart2, Settings, Zap, BookOpen, GraduationCap, Swords, Globe, Flame } from "lucide-react";
 
 type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
 
@@ -91,6 +91,9 @@ type Props = {
   onOpenSchool: () => void;
   onOpenTeacher: () => void;
   onOpenAchievements: () => void;
+  onOpenDaily: () => void;
+  onOpenRanking: () => void;
+  onOpenDuel: () => void;
 };
 
 function Building3D({
@@ -230,7 +233,7 @@ function Building3D({
   );
 }
 
-export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, onOpenAvatar, onOpenStudy, onOpenSchool, onOpenTeacher, onOpenAchievements }: Props) {
+export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, onOpenAvatar, onOpenStudy, onOpenSchool, onOpenTeacher, onOpenAchievements, onOpenDaily, onOpenRanking, onOpenDuel }: Props) {
   const { player } = useGame();
   const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
   const [completedDisciplines] = useState<string[]>([]);
@@ -571,6 +574,9 @@ export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, o
           {[
             { icon: <BarChart2 className="w-5 h-5" />, label: "Progresso", color: "#4ECDC4", onClick: onOpenProgress },
             { icon: <ShoppingBag className="w-5 h-5" />, label: "Loja", color: "#FF6B6B", onClick: onOpenShop },
+            { icon: <Flame className="w-5 h-5" />, label: "Diário", color: "#F97316", onClick: onOpenDaily },
+            { icon: <Globe className="w-5 h-5" />, label: "Ranking", color: "#FFD700", onClick: onOpenRanking },
+            { icon: <Swords className="w-5 h-5" />, label: "Duelo", color: "#EF4444", onClick: onOpenDuel },
             { icon: <Trophy className="w-5 h-5" />, label: "Conquistas", color: "#F59E0B", onClick: onOpenAchievements },
             { icon: <BookOpen className="w-5 h-5" />, label: "Material", color: "#7C3AED", onClick: onOpenStudy },
             { icon: <GraduationCap className="w-5 h-5" />, label: "Professor", color: "#3B82F6", onClick: onOpenTeacher },

@@ -22,6 +22,14 @@ import {
   type InsertCustomQuizQuestion,
   type InsertCustomQuizSession,
   type InsertClassCode,
+  dailyChallenges,
+  dailyChallengeAttempts,
+  challengeDuels,
+  challengeDuelResults,
+  type InsertDailyChallenge,
+  type InsertDailyChallengeAttempt,
+  type InsertChallengeDuel,
+  type InsertChallengeDuelResult,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -456,4 +464,104 @@ export async function getTurmaStats(materialId: number) {
   const avgAccuracy = Math.round(sessions.reduce((a, s) => a + (s.correctAnswers / s.totalQuestions * 100), 0) / sessions.length);
   const topScore = Math.max(...sessions.map(s => s.score));
   return { totalStudents, avgScore, avgAccuracy, topScore };
+}
+
+// ─── Daily Challenges ────────────────────────────────────────────────────────
+export async function getDailyChallengeByDate(date: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(dailyChallenges).where(eq(dailyChallenges.date, date)).limit(1);
+  return result[0] ?? null;
+}
+export async function createDailyChallenge(data: InsertDailyChallenge) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(dailyChallenges).values(data);
+  return getDailyChallengeByDate(data.date as string);
+}
+export async function getPlayerDailyAttempt(playerId: number, challengeId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(dailyChallengeAttempts)
+    .where(and(eq(dailyChallengeAttempts.playerId, playerId), eq(dailyChallengeAttempts.challengeId, challengeId)))
+    .limit(1);
+  return result[0] ?? null;
+}
+export async function createDailyChallengeAttempt(data: InsertDailyChallengeAttempt) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(dailyChallengeAttempts).values(data);
+}
+export async function getPlayerDailyStreak(playerId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const attempts = await db.select({ streakDay: dailyChallengeAttempts.streakDay })
+    .from(dailyChallengeAttempts)
+    .where(eq(dailyChallengeAttempts.playerId, playerId))
+    .orderBy(desc(dailyChallengeAttempts.attemptedAt))
+    .limit(1);
+  return attempts[0]?.streakDay ?? 0;
+}
+
+// ─── Global Leaderboard ───────────────────────────────────────────────────────
+export async function getGlobalLeaderboard(limit = 10) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: players.id,
+    nickname: players.nickname,
+    totalPoints: players.totalPoints,
+    avatarConfig: players.avatarConfig,
+  }).from(players)
+    .orderBy(desc(players.totalPoints))
+    .limit(limit);
+}
+export async function getPlayerRank(playerId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const player = await db.select({ totalPoints: players.totalPoints }).from(players).where(eq(players.id, playerId)).limit(1);
+  if (!player[0]) return 0;
+  const above = await db.select({ count: sql<number>`count(*)` }).from(players)
+    .where(sql`${players.totalPoints} > ${player[0].totalPoints}`);
+  return (above[0]?.count ?? 0) + 1;
+}
+
+// ─── Challenge Duels ───────────────────────────────────────────────────────────
+export async function createChallengeDuel(data: InsertChallengeDuel) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(challengeDuels).values(data);
+  const result = await db.select().from(challengeDuels).where(eq(challengeDuels.code, data.code as string)).limit(1);
+  return result[0] ?? null;
+}
+export async function getChallengeDuelByCode(code: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(challengeDuels).where(eq(challengeDuels.code, code)).limit(1);
+  return result[0] ?? null;
+}
+export async function updateChallengeDuelStatus(id: number, status: 'waiting' | 'in_progress' | 'completed', challengedId?: number) {
+  const db = await getDb();
+  if (!db) return;
+  const updateData: Record<string, unknown> = { status };
+  if (challengedId !== undefined) updateData.challengedId = challengedId;
+  await db.update(challengeDuels).set(updateData).where(eq(challengeDuels.id, id));
+}
+export async function createChallengeDuelResult(data: InsertChallengeDuelResult) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(challengeDuelResults).values(data);
+}
+export async function getChallengeDuelResults(duelId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(challengeDuelResults).where(eq(challengeDuelResults.duelId, duelId));
+}
+export async function getPlayerDuels(playerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(challengeDuels)
+    .where(sql`${challengeDuels.challengerId} = ${playerId} OR ${challengeDuels.challengedId} = ${playerId}`)
+    .orderBy(desc(challengeDuels.createdAt))
+    .limit(20);
 }

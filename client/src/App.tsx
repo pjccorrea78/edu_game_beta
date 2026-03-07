@@ -15,6 +15,9 @@ import StudyMaterial from "./pages/StudyMaterial";
 import SchoolBuilding from "./pages/SchoolBuilding";
 import TeacherPanel from "./pages/TeacherPanel";
 import Achievements from "./pages/Achievements";
+import DailyChallenge from "./pages/DailyChallenge";
+import GlobalRanking from "./pages/GlobalRanking";
+import DuelChallenge from "./pages/DuelChallenge";
 
 type Screen =
   | "welcome"
@@ -26,7 +29,10 @@ type Screen =
   | "custom-quiz"
   | "school"
   | "teacher"
-  | "achievements";
+  | "achievements"
+  | "daily"
+  | "ranking"
+  | "duel";
 
 type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
 
@@ -142,6 +148,9 @@ function GameRouter() {
               onOpenSchool={() => setScreen("school")}
               onOpenTeacher={() => setScreen("teacher")}
               onOpenAchievements={() => setScreen("achievements")}
+              onOpenDaily={() => setScreen("daily")}
+              onOpenRanking={() => setScreen("ranking")}
+              onOpenDuel={() => setScreen("duel")}
             />
           </motion.div>
         )}
@@ -262,6 +271,42 @@ function GameRouter() {
             className="min-h-screen"
           >
             <Achievements onBack={() => setScreen("map")} />
+          </motion.div>
+        )}
+
+        {screen === "daily" && (
+          <motion.div
+            key="daily"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="min-h-screen"
+          >
+            <DailyChallenge onBack={() => setScreen("map")} />
+          </motion.div>
+        )}
+
+        {screen === "ranking" && (
+          <motion.div
+            key="ranking"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="min-h-screen"
+          >
+            <GlobalRanking onBack={() => setScreen("map")} />
+          </motion.div>
+        )}
+
+        {screen === "duel" && (
+          <motion.div
+            key="duel"
+            initial={{ opacity: 0, x: 60 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 60 }}
+            className="min-h-screen"
+          >
+            <DuelChallenge onBack={() => setScreen("map")} />
           </motion.div>
         )}
       </AnimatePresence>

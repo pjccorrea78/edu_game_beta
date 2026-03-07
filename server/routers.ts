@@ -42,6 +42,19 @@ import {
   unlockAchievement,
   getTurmaProgress,
   getTurmaStats,
+  getDailyChallengeByDate,
+  createDailyChallenge,
+  getPlayerDailyAttempt,
+  createDailyChallengeAttempt,
+  getPlayerDailyStreak,
+  getGlobalLeaderboard,
+  getPlayerRank,
+  createChallengeDuel,
+  getChallengeDuelByCode,
+  updateChallengeDuelStatus,
+  createChallengeDuelResult,
+  getChallengeDuelResults,
+  getPlayerDuels,
 } from "./db";
 import { players, equipmentItems } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -1055,8 +1068,158 @@ Retorne SOMENTE um JSON válido neste formato:
         return { sessions, stats, materialTitle: codeEntry.title, code: codeEntry.code };
       }),
   }),
-});
 
+  // ─── Daily Challenge ───────────────────────────────────────────────────────────────────
+  daily: router({
+    getToday: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const today = new Date().toISOString().slice(0, 10);
+        let challenge = await getDailyChallengeByDate(today);
+        if (!challenge) {
+          // Generate via LLM
+          const disciplines: Array<'matematica'|'portugues'|'geografia'|'historia'|'ciencias'> = ['matematica','portugues','geografia','historia','ciencias'];
+          const discipline = disciplines[Math.floor(Math.random() * disciplines.length)];
+          const disciplineNames: Record<string, string> = { matematica: 'Matemática', portugues: 'Português', geografia: 'Geografia', historia: 'História', ciencias: 'Ciências' };
+          const llmResponse = await invokeLLM({
+            messages: [
+              { role: 'system', content: 'Você é um professor criativo para crianças de 5 a 12 anos. Responda APENAS com JSON válido.' },
+              { role: 'user', content: `Crie 1 pergunta desafio do dia de ${disciplineNames[discipline]} para o ensino fundamental. Formato JSON: {"questionText":"...","optionA":"...","optionB":"...","optionC":"...","optionD":"...","correctOption":"A|B|C|D","explanation":"..."}` },
+            ],
+            response_format: { type: 'json_schema', json_schema: { name: 'daily_q', strict: true, schema: { type: 'object', properties: { questionText: { type: 'string' }, optionA: { type: 'string' }, optionB: { type: 'string' }, optionC: { type: 'string' }, optionD: { type: 'string' }, correctOption: { type: 'string', enum: ['A','B','C','D'] }, explanation: { type: 'string' } }, required: ['questionText','optionA','optionB','optionC','optionD','correctOption','explanation'], additionalProperties: false } } },
+          });
+          const raw = llmResponse.choices?.[0]?.message?.content ?? '{}';
+          const q = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
+          challenge = await createDailyChallenge({ date: today, discipline, ...q, bonusMultiplier: 2.0 });
+        }
+        const player = await getOrCreatePlayer(input.sessionId);
+        const alreadyAttempted = challenge ? await getPlayerDailyAttempt(player.id, challenge.id) : null;
+        const streak = await getPlayerDailyStreak(player.id);
+        return { challenge, alreadyAttempted: !!alreadyAttempted, streak };
+      }),
+
+    submit: publicProcedure
+      .input(z.object({ sessionId: z.string(), challengeId: z.number(), selectedOption: z.enum(['A','B','C','D']) }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const challenge = await getDailyChallengeByDate(new Date().toISOString().slice(0, 10));
+        if (!challenge || challenge.id !== input.challengeId) throw new Error('Desafio inválido');
+        const existing = await getPlayerDailyAttempt(player.id, challenge.id);
+        if (existing) throw new Error('Você já respondeu o desafio de hoje!');
+        const isCorrect = input.selectedOption === challenge.correctOption;
+        const streak = await getPlayerDailyStreak(player.id);
+        const newStreak = isCorrect ? streak + 1 : 1;
+        // Bonus: 2x base + streak bonus (max 5x)
+        const streakBonus = Math.min(newStreak, 5);
+        const basePoints = isCorrect ? 10 : 0;
+        const pointsEarned = Math.round(basePoints * challenge.bonusMultiplier * (isCorrect ? streakBonus : 1));
+        await createDailyChallengeAttempt({ playerId: player.id, challengeId: challenge.id, isCorrect, pointsEarned, streakDay: newStreak });
+        if (pointsEarned > 0) await updatePlayerPoints(player.id, pointsEarned);
+        return { isCorrect, pointsEarned, correctOption: challenge.correctOption, explanation: challenge.explanation, newStreak };
+      }),
+  }),
+
+  // ─── Global Leaderboard ───────────────────────────────────────────────────────────────
+  globalLeaderboard: router({
+    getTop10: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const [top10, player] = await Promise.all([
+          getGlobalLeaderboard(10),
+          getOrCreatePlayer(input.sessionId),
+        ]);
+        const myRank = await getPlayerRank(player.id);
+        return { top10, myRank, myPoints: player.totalPoints, myNickname: player.nickname };
+      }),
+  }),
+
+  // ─── Challenge Duels (Multiplayer Async) ───────────────────────────────────────────────
+  duel: router({
+    create: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        quizType: z.enum(['discipline', 'material']),
+        discipline: disciplineSchema.optional(),
+        materialId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+        const duel = await createChallengeDuel({
+          code,
+          challengerId: player.id,
+          quizType: input.quizType,
+          discipline: input.discipline,
+          materialId: input.materialId,
+          status: 'waiting',
+          expiresAt,
+        });
+        return { duel, code };
+      }),
+
+    join: publicProcedure
+      .input(z.object({ sessionId: z.string(), code: z.string() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const duel = await getChallengeDuelByCode(input.code.toUpperCase());
+        if (!duel) throw new Error('Desafio não encontrado');
+        if (duel.status === 'completed') throw new Error('Este desafio já foi concluído');
+        if (duel.challengerId === player.id) throw new Error('Você não pode entrar no seu próprio desafio');
+        if (duel.status === 'waiting') {
+          await updateChallengeDuelStatus(duel.id, 'in_progress', player.id);
+        }
+        return { duel: { ...duel, challengedId: player.id }, playerId: player.id };
+      }),
+
+    submitResult: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        duelId: z.number(),
+        score: z.number(),
+        correctAnswers: z.number(),
+        totalQuestions: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        await createChallengeDuelResult({
+          duelId: input.duelId,
+          playerId: player.id,
+          score: input.score,
+          correctAnswers: input.correctAnswers,
+          totalQuestions: input.totalQuestions,
+          nickname: player.nickname,
+        });
+        const results = await getChallengeDuelResults(input.duelId);
+        const duel = await getChallengeDuelByCode(''); // We'll get by id
+        // Check if both players submitted
+        const duelData = (await getPlayerDuels(player.id)).find(d => d.id === input.duelId);
+        if (duelData && results.length >= 2) {
+          await updateChallengeDuelStatus(input.duelId, 'completed');
+        }
+        return { results };
+      }),
+
+    getResult: publicProcedure
+      .input(z.object({ sessionId: z.string(), duelId: z.number() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const results = await getChallengeDuelResults(input.duelId);
+        const duels = await getPlayerDuels(player.id);
+        const duel = duels.find(d => d.id === input.duelId);
+        return { duel, results, myPlayerId: player.id };
+      }),
+
+    myDuels: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const duels = await getPlayerDuels(player.id);
+        return { duels, myPlayerId: player.id };
+      }),
+  }),
+});
+// ─── Achievements Catalog─
 // ─── Achievements Catalog ─────────────────────────────────────────────────────
 const ACHIEVEMENTS_CATALOG = [
   { key: "first_quiz", title: "Primeiro Passo", description: "Complete seu primeiro quiz", icon: "🎯", category: "quiz" },

@@ -138,3 +138,35 @@
 - [x] Tela de conquistas no painel de progresso
 - [x] Toast de celebração ao desbloquear conquista
 - [x] Badge visual no avatar quando tem conquistas
+
+## Desafio Diário
+
+- [ ] Schema: tabela daily_challenges (id, date, questionId, discipline, bonusMultiplier)
+- [ ] Schema: tabela daily_challenge_attempts (id, playerId, challengeId, isCorrect, pointsEarned, attemptedAt)
+- [ ] Migration SQL aplicada
+- [ ] Router: daily.getToday (busca ou gera desafio do dia via LLM)
+- [ ] Router: daily.submit (responde desafio, aplica bônus 2x, salva tentativa)
+- [ ] Tela DailyChallenge.tsx com countdown até meia-noite
+- [ ] Badge "Hoje" no mapa indicando desafio disponível
+- [ ] Streak de dias consecutivos com bônus crescente
+
+## Ranking Global
+
+- [ ] Router: leaderboard.global (top 10 jogadores por pontos totais)
+- [ ] Router: leaderboard.myRank (posição do jogador atual)
+- [ ] Tela GlobalRanking.tsx com pódio animado e lista completa
+- [ ] Estrutura "Mural da Fama" visível no mapa como prédio especial
+- [ ] Atualização em tempo real via polling
+
+## Multiplayer Assíncrono
+
+- [ ] Schema: tabela challenges (id, challengerId, challengedId, quizType, discipline, materialId, status, createdAt)
+- [ ] Schema: tabela challenge_results (id, challengeId, playerId, score, correctAnswers, completedAt)
+- [ ] Migration SQL aplicada
+- [ ] Router: challenge.create (criar desafio com código único)
+- [ ] Router: challenge.accept (aceitar desafio pelo código)
+- [ ] Router: challenge.submit (enviar resultado do quiz)
+- [ ] Router: challenge.getResult (comparar resultados dos dois jogadores)
+- [ ] Tela ChallengeMode.tsx com fluxo criar/aceitar desafio
+- [ ] Tela de resultado comparativo lado a lado
+- [ ] Notificação quando oponente completa o desafio

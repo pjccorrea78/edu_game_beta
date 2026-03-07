@@ -239,3 +239,68 @@ export const playerAchievements = mysqlTable("player_achievements", {
 
 export type PlayerAchievement = typeof playerAchievements.$inferSelect;
 export type InsertPlayerAchievement = typeof playerAchievements.$inferInsert;
+
+// ─── Daily Challenges ────────────────────────────────────────────────────────
+export const dailyChallenges = mysqlTable("daily_challenges", {
+  id: int("id").autoincrement().primaryKey(),
+  date: varchar("date", { length: 10 }).notNull().unique(), // YYYY-MM-DD
+  discipline: mysqlEnum("discipline", ["matematica", "portugues", "geografia", "historia", "ciencias"]).notNull(),
+  questionText: text("questionText").notNull(),
+  optionA: text("optionA").notNull(),
+  optionB: text("optionB").notNull(),
+  optionC: text("optionC").notNull(),
+  optionD: text("optionD").notNull(),
+  correctOption: mysqlEnum("correctOption", ["A", "B", "C", "D"]).notNull(),
+  explanation: text("explanation"),
+  bonusMultiplier: float("bonusMultiplier").default(2.0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type DailyChallenge = typeof dailyChallenges.$inferSelect;
+export type InsertDailyChallenge = typeof dailyChallenges.$inferInsert;
+
+// ─── Daily Challenge Attempts ─────────────────────────────────────────────────
+export const dailyChallengeAttempts = mysqlTable("daily_challenge_attempts", {
+  id: int("id").autoincrement().primaryKey(),
+  playerId: int("playerId").notNull(),
+  challengeId: int("challengeId").notNull(),
+  isCorrect: boolean("isCorrect").notNull(),
+  pointsEarned: int("pointsEarned").default(0).notNull(),
+  streakDay: int("streakDay").default(1).notNull(),
+  attemptedAt: timestamp("attemptedAt").defaultNow().notNull(),
+});
+
+export type DailyChallengeAttempt = typeof dailyChallengeAttempts.$inferSelect;
+export type InsertDailyChallengeAttempt = typeof dailyChallengeAttempts.$inferInsert;
+
+// ─── Challenge Duels (multiplayer async) ─────────────────────────────────────
+export const challengeDuels = mysqlTable("challenge_duels", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 8 }).notNull().unique(),
+  challengerId: int("challengerId").notNull(),
+  challengedId: int("challengedId"),
+  quizType: mysqlEnum("quizType", ["discipline", "material"]).default("discipline").notNull(),
+  discipline: mysqlEnum("discipline", ["matematica", "portugues", "geografia", "historia", "ciencias"]),
+  materialId: int("materialId"),
+  status: mysqlEnum("status", ["waiting", "in_progress", "completed"]).default("waiting").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt"),
+});
+
+export type ChallengeDuel = typeof challengeDuels.$inferSelect;
+export type InsertChallengeDuel = typeof challengeDuels.$inferInsert;
+
+// ─── Challenge Duel Results ───────────────────────────────────────────────────
+export const challengeDuelResults = mysqlTable("challenge_duel_results", {
+  id: int("id").autoincrement().primaryKey(),
+  duelId: int("duelId").notNull(),
+  playerId: int("playerId").notNull(),
+  score: int("score").default(0).notNull(),
+  correctAnswers: int("correctAnswers").default(0).notNull(),
+  totalQuestions: int("totalQuestions").default(10).notNull(),
+  nickname: varchar("nickname", { length: 64 }),
+  completedAt: timestamp("completedAt").defaultNow().notNull(),
+});
+
+export type ChallengeDuelResult = typeof challengeDuelResults.$inferSelect;
+export type InsertChallengeDuelResult = typeof challengeDuelResults.$inferInsert;
