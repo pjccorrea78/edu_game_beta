@@ -1402,6 +1402,109 @@ Retorne SOMENTE um JSON válido neste formato:
         return { success: true, reportText, stats, accuracy };
       }),
   }),
+
+  // ─── Avatar AI ─────────────────────────────────────────────────────────────
+  avatarAI: router({
+    generateFromDescription: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        description: z.string().min(3).max(500),
+      }))
+      .mutation(async ({ input }) => {
+        const systemPrompt = `Você é um assistente criativo para um jogo educativo infantil estilo Roblox/Minecraft.
+O jogador vai descrever como quer que seu avatar seja e você deve interpretar e retornar uma configuração JSON.
+
+Retorne APENAS um JSON válido com esta estrutura exata:
+{
+  "skinColor": "#hex",
+  "hairColor": "#hex",
+  "shirtColor": "#hex",
+  "pantsColor": "#hex",
+  "eyeColor": "#hex",
+  "hatId": null ou número 1-5,
+  "accessoryId": null ou número 1-3,
+  "avatarName": "nome criativo",
+  "aiDescription": "descrição do avatar gerado em 1 frase"
+}
+
+Regras de interpretação:
+- hatId: 1=chapéu cowboy, 2=coroa, 3=boné, 4=chapéu mago, 5=capacete
+- accessoryId: 1=óculos, 2=capa, 3=mochila
+- Use cores vibrantes e alegres para crianças
+- "herói" = azul/vermelho brilhante, "princesa" = rosa/roxo, "cientista" = branco/azul, "ninja" = preto/cinza
+- "fogo" = vermelho/laranja, "água" = azul/ciano, "floresta" = verde, "sol" = amarelo/laranja
+- Seja criativo e divertido!
+- Nunca retorne nada além do JSON`;
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Crie um avatar para: "${input.description}"` },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "avatar_ai_config",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  skinColor: { type: "string" },
+                  hairColor: { type: "string" },
+                  shirtColor: { type: "string" },
+                  pantsColor: { type: "string" },
+                  eyeColor: { type: "string" },
+                  hatId: { type: ["number", "null"] },
+                  accessoryId: { type: ["number", "null"] },
+                  avatarName: { type: "string" },
+                  aiDescription: { type: "string" },
+                },
+                required: ["skinColor", "hairColor", "shirtColor", "pantsColor", "eyeColor", "hatId", "accessoryId", "avatarName", "aiDescription"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (!content) throw new Error("IA não retornou resposta");
+
+        let avatarConfig: {
+          skinColor: string; hairColor: string; shirtColor: string;
+          pantsColor: string; eyeColor: string; hatId: number | null;
+          accessoryId: number | null; avatarName: string; aiDescription: string;
+        };
+        try {
+          avatarConfig = JSON.parse(typeof content === 'string' ? content : JSON.stringify(content));
+        } catch {
+          throw new Error("Falha ao interpretar resposta da IA");
+        }
+
+        return { success: true, avatarConfig };
+      }),
+
+    applyGenerated: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        skinColor: z.string(),
+        hairColor: z.string(),
+        shirtColor: z.string(),
+        pantsColor: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const current = await getOrCreatePlayer(input.sessionId);
+        const currentAvatar = current.avatarConfig as AvatarConfig | null;
+        await updatePlayerAvatar(player.id, {
+          skinColor: input.skinColor,
+          hairColor: input.hairColor,
+          shirtColor: input.shirtColor,
+          pantsColor: input.pantsColor,
+          equippedItems: currentAvatar?.equippedItems ?? [],
+        });
+        return { success: true };
+      }),
+  }),
 });
 // ─── Achievements Catalog─
 // ─── Achievements Catalog ─────────────────────────────────────────────────────

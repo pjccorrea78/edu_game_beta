@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/contexts/GameContext";
 import BlockyAvatar from "@/components/BlockyAvatar";
-import { Star, Trophy, ShoppingBag, BarChart2, Settings, Zap, BookOpen, GraduationCap, Swords, Globe, Flame, BookMarked, Bell } from "lucide-react";
+import { Star, Trophy, ShoppingBag, BarChart2, Settings, Zap, BookOpen, GraduationCap, Swords, Globe, Flame, BookMarked, Bell, Wand2 } from "lucide-react";
 
 type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
 
@@ -96,6 +96,7 @@ type Props = {
   onOpenDuel: () => void;
   onOpenStory: () => void;
   onOpenNotifications: () => void;
+  onOpenAvatarAI: () => void;
 };
 
 function Building3D({
@@ -235,7 +236,7 @@ function Building3D({
   );
 }
 
-export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, onOpenAvatar, onOpenStudy, onOpenSchool, onOpenTeacher, onOpenAchievements, onOpenDaily, onOpenRanking, onOpenDuel, onOpenStory, onOpenNotifications }: Props) {
+export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, onOpenAvatar, onOpenStudy, onOpenSchool, onOpenTeacher, onOpenAchievements, onOpenDaily, onOpenRanking, onOpenDuel, onOpenStory, onOpenNotifications, onOpenAvatarAI }: Props) {
   const { player } = useGame();
   const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
   const [completedDisciplines] = useState<string[]>([]);
@@ -585,6 +586,7 @@ export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, o
             { icon: <Settings className="w-5 h-5" />, label: "Avatar", color: "#A8E6CF", onClick: onOpenAvatar },
             { icon: <BookMarked className="w-5 h-5" />, label: "História", color: "#8B5CF6", onClick: onOpenStory },
             { icon: <Bell className="w-5 h-5" />, label: "Alertas", color: "#10B981", onClick: onOpenNotifications },
+            { icon: <Wand2 className="w-5 h-5" />, label: "Avatar IA", color: "#EC4899", onClick: onOpenAvatarAI },
           ].map((btn, i) => (
             <motion.button
               key={i}

@@ -20,6 +20,7 @@ import GlobalRanking from "./pages/GlobalRanking";
 import DuelChallenge from "./pages/DuelChallenge";
 import StoryMode from "./pages/StoryMode";
 import PushNotifications from "./pages/PushNotifications";
+import AvatarAI from "./pages/AvatarAI";
 
 type Screen =
   | "welcome"
@@ -36,7 +37,8 @@ type Screen =
   | "ranking"
   | "duel"
   | "story"
-  | "notifications";
+  | "notifications"
+  | "avatar-ai";
 
 type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
 
@@ -157,6 +159,7 @@ function GameRouter() {
               onOpenDuel={() => setScreen("duel")}
               onOpenStory={() => setScreen("story")}
               onOpenNotifications={() => setScreen("notifications")}
+              onOpenAvatarAI={() => setScreen("avatar-ai")}
             />
           </motion.div>
         )}
@@ -343,6 +346,18 @@ function GameRouter() {
             className="min-h-screen"
           >
             <PushNotifications onBack={() => setScreen("map")} />
+          </motion.div>
+        )}
+
+        {screen === "avatar-ai" && (
+          <motion.div
+            key="avatar-ai"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="min-h-screen"
+          >
+            <AvatarAI onBack={() => setScreen("shop")} />
           </motion.div>
         )}
       </AnimatePresence>

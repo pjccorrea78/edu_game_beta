@@ -198,3 +198,16 @@
 - [ ] Tela de configuração do e-mail do responsável
 - [ ] Template do relatório semanal com estatísticas
 - [ ] Agendamento automático semanal
+
+## Personalização de Avatar com IA
+
+- [ ] Router: avatar.generateFromDescription (LLM interpreta texto e retorna configuração JSON de avatar)
+- [ ] Schema JSON de resposta: skinColor, hairColor, shirtColor, pantsColor, hatId, accessoryId, name
+- [ ] Tela AvatarAI.tsx com campo de descrição livre e botão "Gerar com IA"
+- [ ] Preview do avatar em tempo real com as cores/itens gerados pela IA
+- [ ] Animação de loading mágica durante geração
+- [ ] Botão "Aplicar ao meu avatar" para salvar o resultado
+- [ ] Sugestões de descrição para inspirar o aluno (ex: "herói azul com espada")
+- [ ] Histórico das últimas 3 gerações para comparar
+- [ ] Integração ao App.tsx com navegação do mapa
+- [ ] Testes vitest para o router de geração de avatar
