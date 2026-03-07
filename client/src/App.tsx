@@ -18,6 +18,8 @@ import Achievements from "./pages/Achievements";
 import DailyChallenge from "./pages/DailyChallenge";
 import GlobalRanking from "./pages/GlobalRanking";
 import DuelChallenge from "./pages/DuelChallenge";
+import StoryMode from "./pages/StoryMode";
+import PushNotifications from "./pages/PushNotifications";
 
 type Screen =
   | "welcome"
@@ -32,7 +34,9 @@ type Screen =
   | "achievements"
   | "daily"
   | "ranking"
-  | "duel";
+  | "duel"
+  | "story"
+  | "notifications";
 
 type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
 
@@ -151,6 +155,8 @@ function GameRouter() {
               onOpenDaily={() => setScreen("daily")}
               onOpenRanking={() => setScreen("ranking")}
               onOpenDuel={() => setScreen("duel")}
+              onOpenStory={() => setScreen("story")}
+              onOpenNotifications={() => setScreen("notifications")}
             />
           </motion.div>
         )}
@@ -307,6 +313,36 @@ function GameRouter() {
             className="min-h-screen"
           >
             <DuelChallenge onBack={() => setScreen("map")} />
+          </motion.div>
+        )}
+
+        {screen === "story" && (
+          <motion.div
+            key="story"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="min-h-screen"
+          >
+            <StoryMode
+              onBack={() => setScreen("map")}
+              onStartQuiz={(discipline) => {
+                setActiveDiscipline(discipline as Discipline);
+                setScreen("quiz");
+              }}
+            />
+          </motion.div>
+        )}
+
+        {screen === "notifications" && (
+          <motion.div
+            key="notifications"
+            initial={{ opacity: 0, x: -60 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -60 }}
+            className="min-h-screen"
+          >
+            <PushNotifications onBack={() => setScreen("map")} />
           </motion.div>
         )}
       </AnimatePresence>

@@ -30,6 +30,13 @@ import {
   type InsertDailyChallengeAttempt,
   type InsertChallengeDuel,
   type InsertChallengeDuelResult,
+  storyMissions,
+  playerMissions,
+  pushSubscriptions,
+  parentReports,
+  type InsertPlayerMission,
+  type InsertPushSubscription,
+  type InsertParentReport,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -564,4 +571,95 @@ export async function getPlayerDuels(playerId: number) {
     .where(sql`${challengeDuels.challengerId} = ${playerId} OR ${challengeDuels.challengedId} = ${playerId}`)
     .orderBy(desc(challengeDuels.createdAt))
     .limit(20);
+}
+
+// ─── Story Missions ────────────────────────────────────────────────────────────────────────────
+export async function getAllStoryMissions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(storyMissions).orderBy(storyMissions.order);
+}
+export async function getPlayerMissions(playerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(playerMissions).where(eq(playerMissions.playerId, playerId));
+}
+export async function completeMission(data: InsertPlayerMission) {
+  const db = await getDb();
+  if (!db) return;
+  const existing = await db.select().from(playerMissions)
+    .where(and(eq(playerMissions.playerId, data.playerId), eq(playerMissions.missionId, data.missionId)))
+    .limit(1);
+  if (existing.length > 0) return; // already completed
+  await db.insert(playerMissions).values(data);
+}
+
+// ─── Push Subscriptions ──────────────────────────────────────────────────────────────────────────
+export async function savePushSubscription(data: InsertPushSubscription) {
+  const db = await getDb();
+  if (!db) return;
+  // Remove existing subscription for this player to avoid duplicates
+  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.playerId, data.playerId));
+  await db.insert(pushSubscriptions).values(data);
+}
+export async function getAllPushSubscriptions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pushSubscriptions);
+}
+export async function deletePushSubscription(playerId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.playerId, playerId));
+}
+export async function getPlayerPushSubscription(playerId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.playerId, playerId)).limit(1);
+  return result[0] ?? null;
+}
+
+// ─── Parent Reports ───────────────────────────────────────────────────────────────────────────────
+export async function saveParentReport(data: InsertParentReport) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(parentReports).values(data);
+}
+export async function getPlayerWeeklyStats(playerId: number, weekStart: string) {
+  const db = await getDb();
+  if (!db) return null;
+  // Get quiz sessions from this week
+  const weekStartDate = new Date(weekStart);
+  const weekEndDate = new Date(weekStartDate);
+  weekEndDate.setDate(weekEndDate.getDate() + 7);
+  const sessions = await db.select().from(quizSessions)
+    .where(and(
+      eq(quizSessions.playerId, playerId),
+      eq(quizSessions.completed, true),
+      sql`${quizSessions.completedAt} >= ${weekStartDate} AND ${quizSessions.completedAt} < ${weekEndDate}`
+    ));
+  const totalCorrect = sessions.reduce((s, q) => s + q.correctAnswers, 0);
+  const totalAnswers = sessions.reduce((s, q) => s + q.totalQuestions, 0);
+  const disciplines = Array.from(new Set(sessions.map(s => s.discipline)));
+  const achievements = await db.select().from(playerAchievements)
+    .where(and(
+      eq(playerAchievements.playerId, playerId),
+      sql`${playerAchievements.unlockedAt} >= ${weekStartDate}`
+    ));
+  return {
+    quizzesCompleted: sessions.length,
+    correctAnswers: totalCorrect,
+    totalAnswers,
+    disciplinesStudied: disciplines,
+    achievementsUnlocked: achievements.length,
+  };
+}
+export async function getLastParentReport(playerId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(parentReports)
+    .where(eq(parentReports.playerId, playerId))
+    .orderBy(desc(parentReports.sentAt))
+    .limit(1);
+  return result[0] ?? null;
 }

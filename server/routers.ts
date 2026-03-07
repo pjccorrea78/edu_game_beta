@@ -55,11 +55,31 @@ import {
   createChallengeDuelResult,
   getChallengeDuelResults,
   getPlayerDuels,
+  getAllStoryMissions,
+  getPlayerMissions,
+  completeMission,
+  savePushSubscription,
+  getAllPushSubscriptions,
+  deletePushSubscription,
+  getPlayerPushSubscription,
+  saveParentReport,
+  getPlayerWeeklyStats,
+  getLastParentReport,
 } from "./db";
 import { players, equipmentItems } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import type { Discipline, AvatarConfig } from "../drizzle/schema";
 import { notifyOwner } from "./_core/notification";
+import webpush from "web-push";
+
+// Initialize VAPID
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:edugame@manus.im',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 const disciplineSchema = z.enum([
   "matematica",
@@ -1216,6 +1236,170 @@ Retorne SOMENTE um JSON válido neste formato:
         const player = await getOrCreatePlayer(input.sessionId);
         const duels = await getPlayerDuels(player.id);
         return { duels, myPlayerId: player.id };
+      }),
+  }),
+
+  // ─── Story Missions ───────────────────────────────────────────────────────────────────────────
+  missions: router({
+    list: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const allMissions = await getAllStoryMissions();
+        const playerCompleted = await getPlayerMissions(player.id);
+        const completedIds = new Set(playerCompleted.map(pm => pm.missionId));
+        const history = await getPlayerQuizHistory(player.id);
+        const quizzesByDiscipline: Record<string, number> = {};
+        for (const session of history) {
+          quizzesByDiscipline[session.discipline] = (quizzesByDiscipline[session.discipline] || 0) + 1;
+        }
+        const totalQuizzes = history.length;
+        return allMissions.map(m => ({
+          ...m,
+          completed: completedIds.has(m.id),
+          progress: m.discipline
+            ? Math.min(quizzesByDiscipline[m.discipline] || 0, m.requiresQuizzes)
+            : Math.min(totalQuizzes, m.requiresQuizzes),
+        }));
+      }),
+    checkAndUnlock: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const allMissions = await getAllStoryMissions();
+        const playerCompleted = await getPlayerMissions(player.id);
+        const completedIds = new Set(playerCompleted.map(pm => pm.missionId));
+        const history = await getPlayerQuizHistory(player.id);
+        const quizzesByDiscipline: Record<string, number> = {};
+        for (const session of history) {
+          quizzesByDiscipline[session.discipline] = (quizzesByDiscipline[session.discipline] || 0) + 1;
+        }
+        const totalQuizzes = history.length;
+        const newlyUnlocked: typeof allMissions = [];
+        for (const mission of allMissions) {
+          if (completedIds.has(mission.id)) continue;
+          const quizzesForMission = mission.discipline
+            ? (quizzesByDiscipline[mission.discipline] || 0)
+            : totalQuizzes;
+          const meetsPoints = player.totalPoints >= mission.requiresPoints;
+          const meetsQuizzes = quizzesForMission >= mission.requiresQuizzes;
+          if (meetsPoints && meetsQuizzes) {
+            await completeMission({ playerId: player.id, missionId: mission.id });
+            await updatePlayerPoints(player.id, mission.rewardPoints);
+            newlyUnlocked.push(mission);
+          }
+        }
+        return { newlyUnlocked };
+      }),
+  }),
+
+  // ─── Push Notifications ───────────────────────────────────────────────────────────────────────
+  push: router({
+    subscribe: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        endpoint: z.string(),
+        p256dh: z.string(),
+        auth: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        await savePushSubscription({
+          playerId: player.id,
+          endpoint: input.endpoint,
+          p256dh: input.p256dh,
+          auth: input.auth,
+        });
+        return { success: true };
+      }),
+    unsubscribe: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        await deletePushSubscription(player.id);
+        return { success: true };
+      }),
+    getStatus: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const sub = await getPlayerPushSubscription(player.id);
+        return { subscribed: !!sub };
+      }),
+    sendTestNotification: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const sub = await getPlayerPushSubscription(player.id);
+        if (!sub) throw new Error('Sem subscription de push');
+        try {
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            JSON.stringify({
+              title: '🌟 EduGame - Desafio Diário!',
+              body: `Olá ${player.nickname}! Seu desafio diário está esperando. Venha ganhar pontos bônus!`,
+              tag: 'daily-challenge',
+              url: '/'
+            })
+          );
+          return { success: true };
+        } catch (err) {
+          console.error('Push error:', err);
+          throw new Error('Falha ao enviar notificação push');
+        }
+      }),
+  }),
+
+  // ─── Parent Reports ──────────────────────────────────────────────────────────────────────────────
+  parentReport: router({
+    getLastReport: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        return getLastParentReport(player.id);
+      }),
+    generateAndSend: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        parentEmail: z.string().email(),
+      }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - daysToMonday);
+        weekStart.setHours(0, 0, 0, 0);
+        const weekStartStr = weekStart.toISOString().split('T')[0];
+        const stats = await getPlayerWeeklyStats(player.id, weekStartStr);
+        const accuracy = stats && stats.totalAnswers > 0
+          ? Math.round((stats.correctAnswers / stats.totalAnswers) * 100)
+          : 0;
+        const reportContent = await invokeLLM({
+          messages: [
+            { role: 'system', content: 'Você é um assistente educacional amigável. Gere um relatório semanal conciso e motivador em português para pais sobre o progresso do filho no EduGame.' },
+            { role: 'user', content: `Gere um relatório semanal para os pais do aluno "${player.nickname}" com os seguintes dados da semana:\n- Quizzes completados: ${stats?.quizzesCompleted || 0}\n- Taxa de acerto: ${accuracy}%\n- Disciplinas estudadas: ${stats?.disciplinesStudied?.join(', ') || 'nenhuma'}\n- Conquistas desbloqueadas: ${stats?.achievementsUnlocked || 0}\n- Pontos totais acumulados: ${player.totalPoints}\n\nO relatório deve ser encorajador, destacar pontos positivos e sugerir áreas para melhorar. Máximo 150 palavras.` }
+          ]
+        });
+        const reportText = (reportContent as { choices?: { message?: { content?: string } }[] }).choices?.[0]?.message?.content || '';
+        await saveParentReport({
+          playerId: player.id,
+          parentEmail: input.parentEmail,
+          weekStart: weekStartStr,
+          totalPoints: player.totalPoints,
+          quizzesCompleted: stats?.quizzesCompleted || 0,
+          correctAnswers: stats?.correctAnswers || 0,
+          totalAnswers: stats?.totalAnswers || 0,
+          disciplinesStudied: (stats?.disciplinesStudied || []) as string[],
+          achievementsUnlocked: stats?.achievementsUnlocked || 0,
+        });
+        await updatePlayerGuardianEmail(player.id, input.parentEmail);
+        await notifyOwner({
+          title: `📊 Relatório Semanal - ${player.nickname}`,
+          content: `Para: ${input.parentEmail}\n\n${reportText}\n\nEstatísticas:\n- Quizzes: ${stats?.quizzesCompleted || 0}\n- Acerto: ${accuracy}%\n- Pontos totais: ${player.totalPoints}`,
+        });
+        return { success: true, reportText, stats, accuracy };
       }),
   }),
 });

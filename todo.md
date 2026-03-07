@@ -170,3 +170,31 @@
 - [ ] Tela ChallengeMode.tsx com fluxo criar/aceitar desafio
 - [ ] Tela de resultado comparativo lado a lado
 - [ ] Notificação quando oponente completa o desafio
+
+## Notificações Push Web
+
+- [ ] Service Worker (sw.js) com suporte a push notifications
+- [ ] Endpoint: push.subscribe (salvar subscription do browser)
+- [ ] Endpoint: push.sendDailyReminder (disparar push para todos os inscritos)
+- [ ] Tela de opt-in para notificações no mapa
+- [ ] Agendamento automático do lembrete diário
+
+## Modo História com Missões
+
+- [ ] Schema: tabela story_missions e player_missions
+- [ ] Migration SQL aplicada
+- [ ] Seed: 10 missões progressivas cobrindo todas as disciplinas
+- [ ] Router: missions.list e missions.checkAndUnlock
+- [ ] Tela StoryMode.tsx com mapa de missões visual e progressão
+- [ ] Integração com quiz: missões desbloqueiam ao completar quizzes
+- [ ] Botão "História" acessível no mapa
+
+## Relatório Semanal para Pais
+
+- [ ] Schema: tabela parent_reports
+- [ ] Migration SQL aplicada
+- [ ] Router: parentReport.setEmail e parentReport.generateReport
+- [ ] Router: parentReport.sendReport (enviar e-mail via notifyOwner)
+- [ ] Tela de configuração do e-mail do responsável
+- [ ] Template do relatório semanal com estatísticas
+- [ ] Agendamento automático semanal

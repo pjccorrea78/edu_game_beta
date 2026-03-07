@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/contexts/GameContext";
 import BlockyAvatar from "@/components/BlockyAvatar";
-import { Star, Trophy, ShoppingBag, BarChart2, Settings, Zap, BookOpen, GraduationCap, Swords, Globe, Flame } from "lucide-react";
+import { Star, Trophy, ShoppingBag, BarChart2, Settings, Zap, BookOpen, GraduationCap, Swords, Globe, Flame, BookMarked, Bell } from "lucide-react";
 
 type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
 
@@ -94,6 +94,8 @@ type Props = {
   onOpenDaily: () => void;
   onOpenRanking: () => void;
   onOpenDuel: () => void;
+  onOpenStory: () => void;
+  onOpenNotifications: () => void;
 };
 
 function Building3D({
@@ -233,7 +235,7 @@ function Building3D({
   );
 }
 
-export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, onOpenAvatar, onOpenStudy, onOpenSchool, onOpenTeacher, onOpenAchievements, onOpenDaily, onOpenRanking, onOpenDuel }: Props) {
+export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, onOpenAvatar, onOpenStudy, onOpenSchool, onOpenTeacher, onOpenAchievements, onOpenDaily, onOpenRanking, onOpenDuel, onOpenStory, onOpenNotifications }: Props) {
   const { player } = useGame();
   const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
   const [completedDisciplines] = useState<string[]>([]);
@@ -581,6 +583,8 @@ export default function GameMap({ onEnterBuilding, onOpenShop, onOpenProgress, o
             { icon: <BookOpen className="w-5 h-5" />, label: "Material", color: "#7C3AED", onClick: onOpenStudy },
             { icon: <GraduationCap className="w-5 h-5" />, label: "Professor", color: "#3B82F6", onClick: onOpenTeacher },
             { icon: <Settings className="w-5 h-5" />, label: "Avatar", color: "#A8E6CF", onClick: onOpenAvatar },
+            { icon: <BookMarked className="w-5 h-5" />, label: "História", color: "#8B5CF6", onClick: onOpenStory },
+            { icon: <Bell className="w-5 h-5" />, label: "Alertas", color: "#10B981", onClick: onOpenNotifications },
           ].map((btn, i) => (
             <motion.button
               key={i}

@@ -50,6 +50,13 @@
       "when": 1772852538464,
       "tag": "0006_abnormal_tyrannus",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1772853086698,
+      "tag": "0007_colossal_frank_castle",
+      "breakpoints": true
     }
   ]
 }

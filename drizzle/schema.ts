@@ -304,3 +304,63 @@ export const challengeDuelResults = mysqlTable("challenge_duel_results", {
 
 export type ChallengeDuelResult = typeof challengeDuelResults.$inferSelect;
 export type InsertChallengeDuelResult = typeof challengeDuelResults.$inferInsert;
+
+// ─── Story Missions ─────────────────────────────────────────────────────────────────────────────
+export const storyMissions = mysqlTable("story_missions", {
+  id: int("id").autoincrement().primaryKey(),
+  order: int("order").notNull(),
+  title: varchar("title", { length: 128 }).notNull(),
+  description: text("description").notNull(),
+  emoji: varchar("emoji", { length: 8 }).default("🎯").notNull(),
+  discipline: mysqlEnum("discipline", ["matematica", "portugues", "geografia", "historia", "ciencias"]),
+  requiresQuizzes: int("requiresQuizzes").default(1).notNull(),
+  requiresPoints: int("requiresPoints").default(0).notNull(),
+  rewardPoints: int("rewardPoints").default(50).notNull(),
+  rewardBadge: varchar("rewardBadge", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type StoryMission = typeof storyMissions.$inferSelect;
+export type InsertStoryMission = typeof storyMissions.$inferInsert;
+
+// ─── Player Missions ────────────────────────────────────────────────────────────────────────────
+export const playerMissions = mysqlTable("player_missions", {
+  id: int("id").autoincrement().primaryKey(),
+  playerId: int("playerId").notNull(),
+  missionId: int("missionId").notNull(),
+  completedAt: timestamp("completedAt").defaultNow().notNull(),
+});
+
+export type PlayerMission = typeof playerMissions.$inferSelect;
+export type InsertPlayerMission = typeof playerMissions.$inferInsert;
+
+// ─── Push Subscriptions ──────────────────────────────────────────────────────────────────────────
+export const pushSubscriptions = mysqlTable("push_subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  playerId: int("playerId").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
+
+// ─── Parent Reports ────────────────────────────────────────────────────────────────────────────────
+export const parentReports = mysqlTable("parent_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  playerId: int("playerId").notNull(),
+  parentEmail: varchar("parentEmail", { length: 320 }).notNull(),
+  weekStart: varchar("weekStart", { length: 10 }).notNull(), // YYYY-MM-DD
+  totalPoints: int("totalPoints").default(0).notNull(),
+  quizzesCompleted: int("quizzesCompleted").default(0).notNull(),
+  correctAnswers: int("correctAnswers").default(0).notNull(),
+  totalAnswers: int("totalAnswers").default(0).notNull(),
+  disciplinesStudied: json("disciplinesStudied").$type<string[]>(),
+  achievementsUnlocked: int("achievementsUnlocked").default(0).notNull(),
+  sentAt: timestamp("sentAt").defaultNow().notNull(),
+});
+
+export type ParentReport = typeof parentReports.$inferSelect;
+export type InsertParentReport = typeof parentReports.$inferInsert;
