@@ -302,3 +302,12 @@
 - [x] Habilitar funcionalidades: Desafio Diário, Ranking, Duelos
 - [x] Integrar todas as telas de navegação com o novo menu 3D
 - [x] Testar fluxo completo: mapa → menu → todas as funcionalidades
+
+## Suporte Mobile - Joystick Virtual
+
+- [x] Implementar joystick virtual no canto inferior esquerdo
+- [x] Adicionar feedback visual do joystick (círculo base + controle)
+- [x] Implementar detecção de toque para movimento contínuo
+- [x] Adicionar botão flutuante "Menu" para toque
+- [ ] Testar em dispositivos móveis (iOS e Android)
+- [ ] Otimizar tamanho dos controles para diferentes telas

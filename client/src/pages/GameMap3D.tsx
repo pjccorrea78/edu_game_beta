@@ -75,6 +75,10 @@ export default function GameMap3D({
   const [enteringBuildingId, setEnteringBuildingId] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [nearbyBuilding, setNearbyBuilding] = useState<string | null>(null);
+  const [joystickActive, setJoystickActive] = useState(false);
+  const [joystickPos, setJoystickPos] = useState({ x: 0, y: 0 });
+  const joystickRef = useRef<HTMLDivElement>(null);
+  const joystickBaseRef = useRef<HTMLDivElement>(null);
   const cameraAnimationProgress = useRef(0);
   const targetCameraPos = useRef<THREE.Vector3 | null>(null);
   const targetCameraLookAt = useRef<THREE.Vector3 | null>(null);
@@ -350,6 +354,65 @@ export default function GameMap3D({
     };
   }, [isEntering, onBuildingClick, enteringBuildingId, showMenu]);
 
+  // Joystick touch controls
+  useEffect(() => {
+    if (!joystickBaseRef.current) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 0) return;
+      setJoystickActive(true);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!joystickActive || !joystickBaseRef.current) return;
+      
+      const touch = e.touches[0];
+      const rect = joystickBaseRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      const dx = touch.clientX - centerX;
+      const dy = touch.clientY - centerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const maxDistance = rect.width / 2 - 10;
+      
+      const angle = Math.atan2(dy, dx);
+      const constrainedDistance = Math.min(distance, maxDistance);
+      
+      const x = Math.cos(angle) * constrainedDistance;
+      const y = Math.sin(angle) * constrainedDistance;
+      
+      setJoystickPos({ x, y });
+      
+      // Update movement keys based on joystick position
+      const threshold = maxDistance * 0.3;
+      keysPressed.current['w'] = y < -threshold;
+      keysPressed.current['s'] = y > threshold;
+      keysPressed.current['a'] = x < -threshold;
+      keysPressed.current['d'] = x > threshold;
+    };
+
+    const handleTouchEnd = () => {
+      setJoystickActive(false);
+      setJoystickPos({ x: 0, y: 0 });
+      keysPressed.current['w'] = false;
+      keysPressed.current['s'] = false;
+      keysPressed.current['a'] = false;
+      keysPressed.current['d'] = false;
+    };
+
+    const element = joystickBaseRef.current;
+    element.addEventListener('touchstart', handleTouchStart);
+    element.addEventListener('touchmove', handleTouchMove);
+    element.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      element.removeEventListener('touchstart', handleTouchStart);
+      element.removeEventListener('touchmove', handleTouchMove);
+      element.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [joystickActive]);
+
   return (
     <div className="w-full h-screen flex flex-col bg-gradient-to-b from-sky-300 to-sky-100">
       {/* 3D Canvas */}
@@ -473,6 +536,34 @@ export default function GameMap3D({
             <p>WASD ou Setas: Mover</p>
             <p>ESC ou M: Menu</p>
           </Card>
+        </div>
+      )}
+
+      {/* Joystick Virtual para Mobile */}
+      <div 
+        ref={joystickBaseRef}
+        className="absolute bottom-6 left-6 w-24 h-24 bg-gray-300/30 rounded-full border-2 border-gray-400/50 backdrop-blur pointer-events-auto touch-none lg:hidden"
+        onTouchStart={() => {}}
+      >
+        <div
+          className="absolute w-12 h-12 bg-gray-500/60 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all"
+          style={{
+            transform: `translate(calc(-50% + ${joystickPos.x}px), calc(-50% + ${joystickPos.y}px))`,
+          }}
+        />
+      </div>
+
+      {/* Mobile Menu Button - Bottom Right */}
+      {!isEntering && (
+        <div className="absolute bottom-6 right-6 pointer-events-auto md:hidden">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowMenu(!showMenu)}
+            className="w-14 h-14 rounded-full"
+          >
+            {showMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </Button>
         </div>
       )}
 
