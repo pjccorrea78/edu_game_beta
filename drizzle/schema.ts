@@ -35,6 +35,9 @@ export const players = mysqlTable("players", {
   totalPoints: int("totalPoints").default(0).notNull(),
   guardianEmail: varchar("guardianEmail", { length: 320 }),
   avatarConfig: json("avatarConfig").$type<AvatarConfig>(),
+  avatarImageUrl: varchar("avatarImageUrl", { length: 1024 }),
+  avatarShareCode: varchar("avatarShareCode", { length: 8 }).unique(),
+  parentEmail: varchar("parentEmail", { length: 320 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -48,6 +51,7 @@ export type AvatarConfig = {
   shirtColor: string;
   pantsColor: string;
   equippedItems: number[];
+  aiGeneratedName?: string;
 };
 
 // ─── Questions ────────────────────────────────────────────────────────────────
@@ -239,6 +243,21 @@ export const playerAchievements = mysqlTable("player_achievements", {
 
 export type PlayerAchievement = typeof playerAchievements.$inferSelect;
 export type InsertPlayerAchievement = typeof playerAchievements.$inferInsert;
+
+// ─── Avatar Shares ────────────────────────────────────────────────────────────
+export const avatarShares = mysqlTable("avatar_shares", {
+  id: int("id").autoincrement().primaryKey(),
+  playerId: int("playerId").notNull(),
+  shareCode: varchar("shareCode", { length: 8 }).notNull().unique(),
+  imageUrl: varchar("imageUrl", { length: 1024 }).notNull(),
+  avatarConfig: json("avatarConfig").$type<AvatarConfig>().notNull(),
+  viewCount: int("viewCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt"),
+});
+
+export type AvatarShare = typeof avatarShares.$inferSelect;
+export type InsertAvatarShare = typeof avatarShares.$inferInsert;
 
 // ─── Daily Challenges ────────────────────────────────────────────────────────
 export const dailyChallenges = mysqlTable("daily_challenges", {

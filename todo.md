@@ -211,3 +211,29 @@
 - [ ] Histórico das últimas 3 gerações para comparar
 - [ ] Integração ao App.tsx com navegação do mapa
 - [ ] Testes vitest para o router de geração de avatar
+
+## Geração de Imagem do Avatar
+
+- [ ] Router: avatarAI.generateImage (LLM gera prompt artístico, IA cria imagem PNG)
+- [ ] Salvar URL da imagem no banco (player.avatarImageUrl)
+- [ ] Exibir foto de perfil no painel de progresso
+- [ ] Exibir foto de perfil no HUD do quiz
+- [ ] Botão "Gerar Foto" na tela AvatarAI com preview
+
+## Compartilhamento de Avatar
+
+- [ ] Gerar código único de compartilhamento (6 caracteres)
+- [ ] Salvar link compartilhável com imagem do avatar
+- [ ] Botão "Compartilhar" na tela AvatarAI
+- [ ] Modal com link copiável e QR code
+- [ ] Página pública para visualizar avatar compartilhado (/avatar/:shareCode)
+
+## Autenticação com Google/E-mail
+
+- [ ] Integrar Manus OAuth (já existe, melhorar UX)
+- [ ] Adicionar opção de login com Google
+- [ ] Adicionar opção de login com E-mail
+- [ ] Salvar e-mail do responsável no banco (players.parentEmail)
+- [ ] Tela de login/registro antes do welcome
+- [ ] Persistência de sessão entre dispositivos
+- [ ] Recuperação de conta por e-mail

@@ -57,6 +57,13 @@
       "when": 1772853086698,
       "tag": "0007_colossal_frank_castle",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1773100611944,
+      "tag": "0008_mature_mole_man",
+      "breakpoints": true
     }
   ]
 }

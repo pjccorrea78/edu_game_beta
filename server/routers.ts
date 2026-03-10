@@ -4,6 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
+import { generateImage } from "./_core/imageGeneration";
 import { PDFParse } from "pdf-parse";
 import {
   getOrCreatePlayer,
@@ -12,6 +13,10 @@ import {
   updatePlayerNickname,
   updatePlayerGuardianEmail,
   updatePlayerSchoolName,
+  saveAvatarImage,
+  createAvatarShare,
+  getAvatarShare,
+  updateParentEmail,
   getQuestionsByDiscipline,
   countQuestionsByDiscipline,
   createQuizSession,
@@ -1505,8 +1510,46 @@ Regras de interpretação:
         return { success: true };
       }),
   }),
+  
+  // ─── Avatar Image & Sharing ─────────────────────────────────────────────────────────────────────
+  avatarImage: router({
+    generateImage: publicProcedure
+      .input(z.object({ playerId: z.number(), description: z.string() }))
+      .mutation(async ({ input }) => {
+        const prompt = `Crie um retrato artístico e colorido de um avatar de criança estilo Roblox/Minecraft com a seguinte descrição: "${input.description}". O avatar deve ser alegre, divertido e apropriado para crianças de 5-12 anos. Use cores vibrantes e um estilo blocky/pixelado.`;
+        const result = await generateImage({ prompt });
+        const imageUrl = result.url || "";
+        await saveAvatarImage(input.playerId, imageUrl, { skinColor: "#FFD1A3", hairColor: "#8B4513", shirtColor: "#FF6B6B", pantsColor: "#4ECDC4", equippedItems: [] });
+        return { imageUrl, success: true };
+      }),
+  }),
+  
+  // ─── Avatar Sharing ─────────────────────────────────────────────────────────────────────────────
+  avatarShare: router({
+    create: publicProcedure
+      .input(z.object({ playerId: z.number(), imageUrl: z.string(), config:  z.record(z.string(), z.any())}))
+      .mutation(async ({ input }) => {
+        const shareCode = await createAvatarShare(input.playerId, input.imageUrl, input.config as AvatarConfig);
+        return { shareCode, success: true };
+      }),
+    get: publicProcedure
+      .input(z.object({ shareCode: z.string() }))
+      .query(async ({ input }) => {
+        const share = await getAvatarShare(input.shareCode);
+        return share ?? null;
+      }),
+  }),
+  
+  // ─── Parent Email ───────────────────────────────────────────────────────────────────────────────
+  parent: router({
+    setEmail: publicProcedure
+      .input(z.object({ playerId: z.number(), email: z.string().email() }))
+      .mutation(async ({ input }) => {
+        await updateParentEmail(input.playerId, input.email);
+        return { success: true };
+      }),
+  }),
 });
-// ─── Achievements Catalog─
 // ─── Achievements Catalog ─────────────────────────────────────────────────────
 const ACHIEVEMENTS_CATALOG = [
   { key: "first_quiz", title: "Primeiro Passo", description: "Complete seu primeiro quiz", icon: "🎯", category: "quiz" },

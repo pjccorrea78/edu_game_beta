@@ -34,9 +34,11 @@ import {
   playerMissions,
   pushSubscriptions,
   parentReports,
+  avatarShares,
   type InsertPlayerMission,
   type InsertPushSubscription,
   type InsertParentReport,
+  type InsertAvatarShare,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -662,4 +664,43 @@ export async function getLastParentReport(playerId: number) {
     .orderBy(desc(parentReports.sentAt))
     .limit(1);
   return result[0] ?? null;
+}
+
+// ─── Avatar Image & Sharing ───────────────────────────────────────────────────────────────────────
+export async function saveAvatarImage(playerId: number, imageUrl: string, config: AvatarConfig) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(players).set({ avatarImageUrl: imageUrl }).where(eq(players.id, playerId));
+}
+
+export async function createAvatarShare(playerId: number, imageUrl: string, config: AvatarConfig) {
+  const db = await getDb();
+  if (!db) return null;
+  const shareCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const result = await db.insert(avatarShares).values({
+    playerId,
+    shareCode,
+    imageUrl,
+    avatarConfig: config,
+  });
+  // Update player with share code
+  await db.update(players).set({ avatarShareCode: shareCode }).where(eq(players.id, playerId));
+  return shareCode;
+}
+
+export async function getAvatarShare(shareCode: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(avatarShares).where(eq(avatarShares.shareCode, shareCode)).limit(1);
+  if (result[0]) {
+    // Increment view count
+    await db.update(avatarShares).set({ viewCount: result[0].viewCount + 1 }).where(eq(avatarShares.shareCode, shareCode));
+  }
+  return result[0] ?? null;
+}
+
+export async function updateParentEmail(playerId: number, email: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(players).set({ parentEmail: email }).where(eq(players.id, playerId));
 }
