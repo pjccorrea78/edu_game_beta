@@ -281,3 +281,11 @@
 - [ ] Arte (Artes Visuais, Música, Teatro, Dança)
 - [ ] Ensino Religioso (Identidade, Alteridade, Cosmologias)
 - [ ] Total: 8 prédios principais + 1 prédio personalizado do aluno
+
+## Redesenho do Mapa 3D - Estilo Roblox com Movimento
+
+- [x] Implementar sistema de movimento do avatar (WASD/setas, câmera terceira pessoa)
+- [x] Criar sistema de colisão e detecção de proximidade com prédios
+- [x] Implementar menu flutuante com acesso via tecla (ESC/M) e botão
+- [x] Testar fluxo completo: movimento → aproximação → entrada no prédio
+- [x] Restaurar usabilidade mantendo visual 3D imersivo
