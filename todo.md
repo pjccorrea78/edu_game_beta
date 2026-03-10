@@ -237,3 +237,47 @@
 - [ ] Tela de login/registro antes do welcome
 - [ ] Persistência de sessão entre dispositivos
 - [ ] Recuperação de conta por e-mail
+
+## Sistema de Gênero no Avatar
+
+- [ ] Schema: adicionar campo gender (masculino/feminino) na tabela players
+- [ ] Cabelos masculinos: corte curto, topete, moicano, calvo
+- [ ] Cabelos femininos: comprido, trança, coque, franja
+- [ ] Roupas masculinas: camiseta, camisa, moletom, jaqueta
+- [ ] Roupas femininas: vestido, blusa, saia, macacão
+- [ ] Acessórios por gênero: óculos, lenço, pulseira, brinco
+- [ ] Tela de seleção de gênero no onboarding
+- [ ] BlockyAvatar renderiza diferentes silhuetas por gênero
+
+## Mapa 3D Evoluído com Animações
+
+- [ ] Usar Three.js para gráficos 3D avançados
+- [ ] Prédios com texturas e sombras realistas
+- [ ] Avatar do jogador animado caminhando no mapa
+- [ ] Animação de entrada: avatar caminha até prédio e entra
+- [ ] Efeitos de partículas (poeira, folhas caindo)
+- [ ] Câmera isométrica suave com zoom
+- [ ] Iluminação dinâmica (dia/noite)
+
+## Faixas Etárias BNCC (1º ao 5º Ano)
+
+- [ ] 1º ano (6-7 anos): Alfabetização, números até 10
+- [ ] 2º ano (7-8 anos): Leitura, números até 100
+- [ ] 3º ano (8-9 anos): Escrita, multiplicação e divisão
+- [ ] 4º ano (9-10 anos): Frações, geometria
+- [ ] 5º ano (10-11 anos): Números decimais, estatística
+- [ ] Seleção de série no onboarding
+- [ ] Perguntas adaptadas por série
+- [ ] Prédios específicos por série
+
+## Prédios das Disciplinas BNCC
+
+- [ ] Língua Portuguesa (Literatura, Leitura, Escrita, Oralidade)
+- [ ] Matemática (Números, Geometria, Álgebra, Estatística)
+- [ ] Ciências (Vida, Matéria, Energia, Terra)
+- [ ] Geografia (Espaço, Recursos, População, Cultura)
+- [ ] História (Tempo, Sociedade, Identidade, Memória)
+- [ ] Educação Física (Movimento, Saúde, Jogos)
+- [ ] Arte (Artes Visuais, Música, Teatro, Dança)
+- [ ] Ensino Religioso (Identidade, Alteridade, Cosmologias)
+- [ ] Total: 8 prédios principais + 1 prédio personalizado do aluno

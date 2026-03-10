@@ -6,6 +6,8 @@ type AvatarConfig = {
   shirtColor: string;
   pantsColor: string;
   equippedItems?: number[];
+  gender?: "masculino" | "feminino";
+  hairStyle?: string;
 };
 
 type Props = {
@@ -22,6 +24,40 @@ const DEFAULT_CONFIG: AvatarConfig = {
   hairColor: "#4A2C2A",
   shirtColor: "#4169E1",
   pantsColor: "#4682B4",
+  gender: "masculino",
+  hairStyle: "curto",
+};
+
+// Estilos de cabelo por gênero
+const HAIR_STYLES = {
+  masculino: {
+    curto: "hair-curto-m",
+    topete: "hair-topete",
+    moicano: "hair-moicano",
+    calvo: "hair-calvo",
+  },
+  feminino: {
+    comprido: "hair-comprido",
+    tranca: "hair-tranca",
+    coque: "hair-coque",
+    franja: "hair-franja",
+  },
+};
+
+// Estilos de roupa por gênero
+const SHIRT_STYLES = {
+  masculino: {
+    camiseta: "shirt-tshirt",
+    camisa: "shirt-shirt",
+    moletom: "shirt-hoodie",
+    jaqueta: "shirt-jacket",
+  },
+  feminino: {
+    vestido: "shirt-dress",
+    blusa: "shirt-blouse",
+    saia: "shirt-skirt",
+    macacão: "shirt-jumpsuit",
+  },
 };
 
 export default function BlockyAvatar({
@@ -34,6 +70,119 @@ export default function BlockyAvatar({
 }: Props) {
   const scale = size / 120;
   const animClass = animate ? "animate-bounce-slow" : "";
+  const gender = config.gender || "masculino";
+  const hairStyle = config.hairStyle || (gender === "masculino" ? "curto" : "comprido");
+
+  // Renderizar cabelo baseado no gênero e estilo
+  const renderHair = () => {
+    if (hairStyle === "calvo") {
+      return null; // Sem cabelo
+    }
+
+    if (gender === "masculino") {
+      if (hairStyle === "curto") {
+        return (
+          <>
+            <rect x="22" y="8" width="76" height="20" rx="8" fill={config.hairColor} />
+            <rect x="22" y="8" width="14" height="28" rx="6" fill={config.hairColor} />
+            <rect x="84" y="8" width="14" height="28" rx="6" fill={config.hairColor} />
+          </>
+        );
+      } else if (hairStyle === "topete") {
+        return (
+          <>
+            <rect x="22" y="8" width="76" height="18" rx="8" fill={config.hairColor} />
+            <polygon points="40,-8 60,-18 80,-8" fill={config.hairColor} />
+            <rect x="22" y="8" width="14" height="24" rx="6" fill={config.hairColor} />
+            <rect x="84" y="8" width="14" height="24" rx="6" fill={config.hairColor} />
+          </>
+        );
+      } else if (hairStyle === "moicano") {
+        return (
+          <>
+            <polygon points="30,2 45,-12 60,-16 75,-12 90,2" fill={config.hairColor} />
+            <rect x="22" y="8" width="14" height="20" rx="6" fill={config.hairColor} />
+            <rect x="84" y="8" width="14" height="20" rx="6" fill={config.hairColor} />
+          </>
+        );
+      }
+    } else {
+      // Feminino
+      if (hairStyle === "comprido") {
+        return (
+          <>
+            <rect x="22" y="8" width="76" height="20" rx="8" fill={config.hairColor} />
+            <rect x="18" y="20" width="12" height="40" rx="6" fill={config.hairColor} />
+            <rect x="90" y="20" width="12" height="40" rx="6" fill={config.hairColor} />
+          </>
+        );
+      } else if (hairStyle === "tranca") {
+        return (
+          <>
+            <rect x="22" y="8" width="76" height="20" rx="8" fill={config.hairColor} />
+            <path d="M 28 28 Q 24 50 26 68" stroke={config.hairColor} strokeWidth="8" fill="none" strokeLinecap="round" />
+            <path d="M 92 28 Q 96 50 94 68" stroke={config.hairColor} strokeWidth="8" fill="none" strokeLinecap="round" />
+          </>
+        );
+      } else if (hairStyle === "coque") {
+        return (
+          <>
+            <circle cx="60" cy="0" r="12" fill={config.hairColor} />
+            <rect x="22" y="8" width="76" height="18" rx="8" fill={config.hairColor} />
+            <rect x="22" y="8" width="14" height="24" rx="6" fill={config.hairColor} />
+            <rect x="84" y="8" width="14" height="24" rx="6" fill={config.hairColor} />
+          </>
+        );
+      } else if (hairStyle === "franja") {
+        return (
+          <>
+            <rect x="22" y="8" width="76" height="20" rx="8" fill={config.hairColor} />
+            <rect x="35" y="12" width="50" height="12" rx="4" fill={config.hairColor} />
+            <rect x="22" y="8" width="14" height="28" rx="6" fill={config.hairColor} />
+            <rect x="84" y="8" width="14" height="28" rx="6" fill={config.hairColor} />
+          </>
+        );
+      }
+    }
+
+    return null;
+  };
+
+  // Renderizar corpo baseado no gênero
+  const renderBody = () => {
+    if (gender === "feminino") {
+      // Corpo feminino com silhueta diferente
+      return (
+        <>
+          {/* Saia/Vestido */}
+          <path d="M 28 90 L 25 130 Q 25 140 35 140 L 85 140 Q 95 140 95 130 L 92 90 Z" fill={config.pantsColor} />
+          {/* Corpo */}
+          <rect x="32" y="68" width="56" height="28" rx="6" fill={config.shirtColor} />
+          {/* Detalhes do corpo feminino */}
+          <ellipse cx="45" cy="78" rx="6" ry="8" fill="rgba(0,0,0,0.05)" />
+          <ellipse cx="75" cy="78" rx="6" ry="8" fill="rgba(0,0,0,0.05)" />
+        </>
+      );
+    } else {
+      // Corpo masculino padrão
+      return (
+        <>
+          {/* Calças */}
+          <rect x="34" y="110" width="22" height="44" rx="4" fill={config.pantsColor} />
+          <rect x="64" y="110" width="22" height="44" rx="4" fill={config.pantsColor} />
+          {/* Calças shading */}
+          <rect x="34" y="110" width="8" height="44" rx="4" fill="rgba(0,0,0,0.1)" />
+          <rect x="64" y="110" width="8" height="44" rx="4" fill="rgba(0,0,0,0.1)" />
+          {/* Corpo */}
+          <rect x="28" y="68" width="64" height="48" rx="6" fill={config.shirtColor} />
+          {/* Body shading */}
+          <rect x="28" y="68" width="18" height="48" rx="6" fill="rgba(0,0,0,0.1)" />
+          {/* Shirt details */}
+          <rect x="52" y="72" width="16" height="4" rx="2" fill="rgba(255,255,255,0.3)" />
+        </>
+      );
+    }
+  };
 
   return (
     <div
@@ -49,22 +198,12 @@ export default function BlockyAvatar({
         {/* Shadow */}
         <ellipse cx="60" cy="162" rx="28" ry="5" fill="rgba(0,0,0,0.15)" />
 
-        {/* Legs */}
-        <rect x="34" y="110" width="22" height="44" rx="4" fill={config.pantsColor} />
-        <rect x="64" y="110" width="22" height="44" rx="4" fill={config.pantsColor} />
-        {/* Leg shading */}
-        <rect x="34" y="110" width="8" height="44" rx="4" fill="rgba(0,0,0,0.1)" />
-        <rect x="64" y="110" width="8" height="44" rx="4" fill="rgba(0,0,0,0.1)" />
+        {/* Legs/Pants */}
+        {renderBody()}
+
         {/* Shoes */}
         <rect x="30" y="148" width="28" height="14" rx="5" fill="#2C1810" />
         <rect x="62" y="148" width="28" height="14" rx="5" fill="#2C1810" />
-
-        {/* Body */}
-        <rect x="28" y="68" width="64" height="48" rx="6" fill={config.shirtColor} />
-        {/* Body shading */}
-        <rect x="28" y="68" width="18" height="48" rx="6" fill="rgba(0,0,0,0.1)" />
-        {/* Shirt details */}
-        <rect x="52" y="72" width="16" height="4" rx="2" fill="rgba(255,255,255,0.3)" />
 
         {/* Arms */}
         <rect x="6" y="70" width="20" height="42" rx="6" fill={config.shirtColor} />
@@ -110,9 +249,7 @@ export default function BlockyAvatar({
         <ellipse cx="85" cy="50" rx="8" ry="5" fill="rgba(255,100,100,0.25)" />
 
         {/* Hair */}
-        <rect x="22" y="8" width="76" height="20" rx="8" fill={config.hairColor} />
-        <rect x="22" y="8" width="14" height="32" rx="6" fill={config.hairColor} />
-        <rect x="84" y="8" width="14" height="32" rx="6" fill={config.hairColor} />
+        {renderHair()}
 
         {/* Hat overlay */}
         {hat === "cowboy" && (
@@ -143,6 +280,14 @@ export default function BlockyAvatar({
             <rect x="35" y="6" width="50" height="10" rx="3" fill="rgba(100,200,255,0.5)" />
           </>
         )}
+        {hat === "tiara" && gender === "feminino" && (
+          <>
+            <polygon points="25,10 40,0 60,-4 80,0 95,10" fill="#FFD700" />
+            <circle cx="40" cy="-2" r="3" fill="#FF1493" />
+            <circle cx="60" cy="-6" r="3" fill="#FF1493" />
+            <circle cx="80" cy="-2" r="3" fill="#FF1493" />
+          </>
+        )}
 
         {/* Accessory overlay */}
         {accessory === "glasses" && (
@@ -171,6 +316,17 @@ export default function BlockyAvatar({
           <>
             <path d="M 28 80 Q -10 50 -5 100 Q 10 90 28 100 Z" fill="#FFFACD" opacity="0.9" />
             <path d="M 92 80 Q 130 50 125 100 Q 110 90 92 100 Z" fill="#FFFACD" opacity="0.9" />
+          </>
+        )}
+        {accessory === "brinco" && gender === "feminino" && (
+          <>
+            <circle cx="20" cy="50" r="4" fill="#FFD700" />
+            <circle cx="100" cy="50" r="4" fill="#FFD700" />
+          </>
+        )}
+        {accessory === "lenco" && gender === "feminino" && (
+          <>
+            <path d="M 50 58 L 45 70 L 75 70 L 70 58" fill="#FF69B4" opacity="0.8" />
           </>
         )}
       </svg>

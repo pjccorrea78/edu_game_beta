@@ -64,6 +64,13 @@
       "when": 1773100611944,
       "tag": "0008_mature_mole_man",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1773106698133,
+      "tag": "0009_condemned_payback",
+      "breakpoints": true
     }
   ]
 }

@@ -38,6 +38,8 @@ export const players = mysqlTable("players", {
   avatarImageUrl: varchar("avatarImageUrl", { length: 1024 }),
   avatarShareCode: varchar("avatarShareCode", { length: 8 }).unique(),
   parentEmail: varchar("parentEmail", { length: 320 }),
+  gender: mysqlEnum("gender", ["masculino", "feminino"]).default("masculino"),
+  grade: mysqlEnum("grade", ["1", "2", "3", "4", "5"]),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -52,6 +54,8 @@ export type AvatarConfig = {
   pantsColor: string;
   equippedItems: number[];
   aiGeneratedName?: string;
+  gender?: "masculino" | "feminino";
+  hairStyle?: string;
 };
 
 // ─── Questions ────────────────────────────────────────────────────────────────
@@ -63,6 +67,9 @@ export const questions = mysqlTable("questions", {
     "geografia",
     "historia",
     "ciencias",
+    "educacao_fisica",
+    "arte",
+    "ensino_religioso",
   ]).notNull(),
   difficulty: mysqlEnum("difficulty", ["easy", "medium", "hard"])
     .default("medium")
@@ -86,7 +93,10 @@ export type Discipline =
   | "portugues"
   | "geografia"
   | "historia"
-  | "ciencias";
+  | "ciencias"
+  | "educacao_fisica"
+  | "arte"
+  | "ensino_religioso";
 
 // ─── Quiz Sessions ────────────────────────────────────────────────────────────
 export const quizSessions = mysqlTable("quiz_sessions", {
@@ -98,7 +108,11 @@ export const quizSessions = mysqlTable("quiz_sessions", {
     "geografia",
     "historia",
     "ciencias",
+    "educacao_fisica",
+    "arte",
+    "ensino_religioso",
   ]).notNull(),
+  grade: mysqlEnum("grade", ["1", "2", "3", "4", "5"]),
   score: int("score").default(0).notNull(),
   correctAnswers: int("correctAnswers").default(0).notNull(),
   wrongAnswers: int("wrongAnswers").default(0).notNull(),
