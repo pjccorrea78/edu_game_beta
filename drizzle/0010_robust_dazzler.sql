@@ -1,0 +1,3 @@
+ALTER TABLE `challenge_duels` MODIFY COLUMN `discipline` enum('matematica','portugues','geografia','historia','ciencias','educacao_fisica','arte','ensino_religioso');--> statement-breakpoint
+ALTER TABLE `questions` MODIFY COLUMN `discipline` enum('matematica','portugues','geografia','historia','ciencias','educacao_fisica','arte','ensino_religioso') NOT NULL;--> statement-breakpoint
+ALTER TABLE `story_missions` MODIFY COLUMN `discipline` enum('matematica','portugues','geografia','historia','ciencias','educacao_fisica','arte','ensino_religioso');

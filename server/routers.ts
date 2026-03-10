@@ -92,6 +92,9 @@ const disciplineSchema = z.enum([
   "geografia",
   "historia",
   "ciencias",
+  "educacao_fisica",
+  "arte",
+  "ensino_religioso",
 ]);
 
 const avatarConfigSchema = z.object({

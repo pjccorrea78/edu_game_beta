@@ -5,7 +5,7 @@ import { useGame } from "@/contexts/GameContext";
 import BlockyAvatar from "@/components/BlockyAvatar";
 import { ArrowLeft, Zap, CheckCircle, XCircle, Trophy, Star, RefreshCw, BookOpen } from "lucide-react";
 
-type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
+type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias" | "educacao_fisica" | "arte" | "ensino_religioso";
 
 type Question = {
   id: number;
@@ -43,6 +43,9 @@ const DISCIPLINE_INFO: Record<Discipline, { name: string; emoji: string; color: 
   geografia: { name: "Geografia", emoji: "🌍", color: "#45B7D1", bg: "from-blue-400 to-indigo-400" },
   historia: { name: "História", emoji: "🏛️", color: "#F7DC6F", bg: "from-yellow-400 to-amber-400" },
   ciencias: { name: "Ciências", emoji: "🔬", color: "#A8E6CF", bg: "from-green-400 to-emerald-400" },
+  educacao_fisica: { name: "Educação Física", emoji: "⚽", color: "#FF8C42", bg: "from-orange-400 to-red-400" },
+  arte: { name: "Arte", emoji: "🎨", color: "#FF1493", bg: "from-pink-400 to-rose-400" },
+  ensino_religioso: { name: "Ensino Religioso", emoji: "✨", color: "#87CEEB", bg: "from-sky-400 to-blue-400" },
 };
 
 const OPTIONS = ["A", "B", "C", "D"] as const;

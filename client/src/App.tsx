@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Welcome from "./pages/Welcome";
 import GameMap from "./pages/GameMap";
+import GameMap3D from "./pages/GameMap3D";
 import QuizScreen from "./pages/QuizScreen";
 import AvatarShop from "./pages/AvatarShop";
 import ProgressPanel from "./pages/ProgressPanel";
@@ -40,7 +41,7 @@ type Screen =
   | "notifications"
   | "avatar-ai";
 
-type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias";
+type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "ciencias" | "educacao_fisica" | "arte" | "ensino_religioso";
 
 function GameRouter() {
   const { player, isLoading } = useGame();
@@ -145,21 +146,24 @@ function GameRouter() {
             className="min-h-screen"
             style={{ height: "100svh" }}
           >
-            <GameMap
-              onEnterBuilding={handleEnterBuilding}
+            <GameMap3D
+              playerAvatar={player?.avatarConfig || {}}
+              onBuildingClick={(buildingId) => {
+                const disciplineMap: Record<string, Discipline> = {
+                  math: "matematica",
+                  portuguese: "portugues",
+                  geography: "geografia",
+                  history: "historia",
+                  science: "ciencias",
+                  pe: "educacao_fisica",
+                  art: "arte",
+                  religion: "ensino_religioso",
+                };
+                const discipline = disciplineMap[buildingId];
+                if (discipline) handleEnterBuilding(discipline)
+              }}
               onOpenShop={() => setScreen("shop")}
               onOpenProgress={() => setScreen("progress")}
-              onOpenAvatar={() => setScreen("shop")}
-              onOpenStudy={() => setScreen("study")}
-              onOpenSchool={() => setScreen("school")}
-              onOpenTeacher={() => setScreen("teacher")}
-              onOpenAchievements={() => setScreen("achievements")}
-              onOpenDaily={() => setScreen("daily")}
-              onOpenRanking={() => setScreen("ranking")}
-              onOpenDuel={() => setScreen("duel")}
-              onOpenStory={() => setScreen("story")}
-              onOpenNotifications={() => setScreen("notifications")}
-              onOpenAvatarAI={() => setScreen("avatar-ai")}
             />
           </motion.div>
         )}
