@@ -311,3 +311,18 @@
 - [x] Adicionar botão flutuante "Menu" para toque
 - [ ] Testar em dispositivos móveis (iOS e Android)
 - [ ] Otimizar tamanho dos controles para diferentes telas
+
+## Redesenho Cidade 3D Estilo Roblox
+
+- [x] Criar chão com asfalto cinza (ruas) e grama verde (quadras)
+- [x] Adicionar calçadas (faixas brancas/cinza entre rua e prédio)
+- [x] Criar grid de ruas (horizontal e vertical) formando quartéirões
+- [x] Construir prédios com fachadas coloridas por disciplina (janelas, portas, placa com nome)
+- [x] Adicionar elementos urbanos: árvores, postes, bancos, faixas de pedestres
+- [x] Implementar avatar humanóide animado: cabeça, tronco, braços, pernas
+- [x] Animação de caminhada: braços e pernas se movendo ao andar
+- [x] Câmera terceira pessoa atrás e acima do avatar
+- [x] Sistema de colisão com prédios (não atravessa paredes)
+- [x] Detecção de porta do prédio para entrar
+- [x] Joystick mobile funcional com movimento suave
+- [x] Iluminação ambiente para simular dia
