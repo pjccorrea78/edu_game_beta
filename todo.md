@@ -326,3 +326,9 @@
 - [x] Detecção de porta do prédio para entrar
 - [x] Joystick mobile funcional com movimento suave
 - [x] Iluminação ambiente para simular dia
+
+## Bugs Mobile iPhone
+
+- [x] Joystick não move o personagem (delta não chega ao loop de animação)
+- [x] Menu duplicado: aparece tanto no topo quanto na base da tela
+- [x] Garantir que apenas 1 botão de menu apareça em mobile

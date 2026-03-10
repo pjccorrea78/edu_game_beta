@@ -327,10 +327,13 @@ export default function GameMap3D({
   const [showMenu, setShowMenu] = useState(false);
   const [nearbyBuilding, setNearbyBuilding] = useState<string | null>(null);
   const [isEntering, setIsEntering] = useState(false);
+  // Joystick usa refs para evitar closure stale no loop Three.js
   const [joystickActive, setJoystickActive] = useState(false);
-  const [joystickDelta, setJoystickDelta] = useState({ x: 0, y: 0 });
+  const [joystickVisual, setJoystickVisual] = useState({ x: 0, y: 0 });
+  const joystickDeltaRef = useRef({ x: 0, y: 0 }); // lido diretamente no loop
   const joystickBaseRef = useRef<HTMLDivElement>(null);
   const joystickStartRef = useRef({ x: 0, y: 0 });
+  const joystickActiveRef = useRef(false);
 
   // ── Setup Three.js ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -436,10 +439,11 @@ export default function GameMap3D({
       if (keys["a"] || keys["arrowleft"])  moveX -= 1;
       if (keys["d"] || keys["arrowright"]) moveX += 1;
 
-      // Joystick override
-      if (joystickDelta.x !== 0 || joystickDelta.y !== 0) {
-        moveX = joystickDelta.x;
-        moveZ = joystickDelta.y;
+      // Joystick override (lê ref, nunca stale)
+      const jd = joystickDeltaRef.current;
+      if (jd.x !== 0 || jd.y !== 0) {
+        moveX = jd.x;
+        moveZ = jd.y;
       }
 
       const isMoving = moveX !== 0 || moveZ !== 0;
@@ -554,25 +558,31 @@ export default function GameMap3D({
     e.preventDefault();
     const touch = e.touches[0];
     joystickStartRef.current = { x: touch.clientX, y: touch.clientY };
+    joystickActiveRef.current = true;
     setJoystickActive(true);
   }, []);
 
   const handleJoystickMove = useCallback((e: React.TouchEvent) => {
     e.preventDefault();
-    if (!joystickActive) return;
+    if (!joystickActiveRef.current) return;
     const touch = e.touches[0];
     const dx = touch.clientX - joystickStartRef.current.x;
     const dy = touch.clientY - joystickStartRef.current.y;
     const maxR = 40;
     const dist = Math.sqrt(dx * dx + dy * dy);
     const scale = dist > maxR ? maxR / dist : 1;
-    setJoystickDelta({ x: (dx * scale) / maxR, y: (dy * scale) / maxR });
-  }, [joystickActive]);
+    const nx = (dx * scale) / maxR;
+    const ny = (dy * scale) / maxR;
+    joystickDeltaRef.current = { x: nx, y: ny }; // atualiza ref imediatamente
+    setJoystickVisual({ x: nx, y: ny }); // atualiza visual
+  }, []);
 
   const handleJoystickEnd = useCallback((e: React.TouchEvent) => {
     e.preventDefault();
+    joystickActiveRef.current = false;
+    joystickDeltaRef.current = { x: 0, y: 0 };
     setJoystickActive(false);
-    setJoystickDelta({ x: 0, y: 0 });
+    setJoystickVisual({ x: 0, y: 0 });
   }, []);
 
   // ── Entrar no prédio ────────────────────────────────────────────────────────
@@ -598,7 +608,7 @@ export default function GameMap3D({
         </div>
       </div>
 
-      {/* Botão Menu (desktop) */}
+      {/* Botão Menu (único - aparece em todos os dispositivos no topo direito) */}
       <div className="absolute top-3 right-3 z-20 pointer-events-auto">
         <Button
           variant="outline"
@@ -689,21 +699,10 @@ export default function GameMap3D({
           className="w-12 h-12 rounded-full bg-white/60 shadow-lg transition-transform"
           style={{
             transform: joystickActive
-              ? `translate(${joystickDelta.x * 28}px, ${joystickDelta.y * 28}px)`
+              ? `translate(${joystickVisual.x * 28}px, ${joystickVisual.y * 28}px)`
               : "translate(0,0)",
           }}
         />
-      </div>
-
-      {/* Botão Menu (mobile) */}
-      <div className="absolute bottom-6 right-6 z-20 pointer-events-auto md:hidden">
-        <Button
-          size="icon"
-          onClick={() => setShowMenu(!showMenu)}
-          className="w-14 h-14 rounded-full bg-black/60 border border-white/30 text-white"
-        >
-          {showMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </Button>
       </div>
 
       {/* Botão Entrar (mobile, quando próximo) */}
