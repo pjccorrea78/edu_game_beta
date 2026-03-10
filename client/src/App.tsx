@@ -164,6 +164,16 @@ function GameRouter() {
               }}
               onOpenShop={() => setScreen("shop")}
               onOpenProgress={() => setScreen("progress")}
+              onOpenStudy={() => setScreen("study")}
+              onOpenSchool={() => setScreen("school")}
+              onOpenTeacher={() => setScreen("teacher")}
+              onOpenAchievements={() => setScreen("achievements")}
+              onOpenDaily={() => setScreen("daily")}
+              onOpenRanking={() => setScreen("ranking")}
+              onOpenDuel={() => setScreen("duel")}
+              onOpenStory={() => setScreen("story")}
+              onOpenNotifications={() => setScreen("notifications")}
+              onOpenAvatarAI={() => setScreen("avatar-ai")}
             />
           </motion.div>
         )}

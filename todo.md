@@ -289,3 +289,16 @@
 - [x] Implementar menu flutuante com acesso via tecla (ESC/M) e botão
 - [x] Testar fluxo completo: movimento → aproximação → entrada no prédio
 - [x] Restaurar usabilidade mantendo visual 3D imersivo
+
+## Restauração do Menu 2D Completo no Menu 3D
+
+- [x] Adicionar botão "Meu Material" (Study) ao menu flutuante
+- [x] Adicionar botão "Painel do Professor" (Teacher) ao menu flutuante
+- [x] Adicionar botão "Conquistas" (Achievements) ao menu flutuante
+- [x] Adicionar botão "Modo História" (Story) ao menu flutuante
+- [x] Adicionar botão "Notificações" (Notifications) ao menu flutuante
+- [x] Adicionar botão "Avatar IA" (Avatar AI) ao menu flutuante
+- [x] Adicionar botão "Prédio Personalizado" (School) ao menu flutuante
+- [x] Habilitar funcionalidades: Desafio Diário, Ranking, Duelos
+- [x] Integrar todas as telas de navegação com o novo menu 3D
+- [x] Testar fluxo completo: mapa → menu → todas as funcionalidades

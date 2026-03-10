@@ -30,9 +30,34 @@ interface GameMap3DProps {
   onBuildingClick: (buildingId: string) => void;
   onOpenShop: () => void;
   onOpenProgress: () => void;
+  onOpenStudy?: () => void;
+  onOpenSchool?: () => void;
+  onOpenTeacher?: () => void;
+  onOpenAchievements?: () => void;
+  onOpenDaily?: () => void;
+  onOpenRanking?: () => void;
+  onOpenDuel?: () => void;
+  onOpenStory?: () => void;
+  onOpenNotifications?: () => void;
+  onOpenAvatarAI?: () => void;
 }
 
-export default function GameMap3D({ playerAvatar, onBuildingClick, onOpenShop, onOpenProgress }: GameMap3DProps) {
+export default function GameMap3D({
+  playerAvatar,
+  onBuildingClick,
+  onOpenShop,
+  onOpenProgress,
+  onOpenStudy,
+  onOpenSchool,
+  onOpenTeacher,
+  onOpenAchievements,
+  onOpenDaily,
+  onOpenRanking,
+  onOpenDuel,
+  onOpenStory,
+  onOpenNotifications,
+  onOpenAvatarAI,
+}: GameMap3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -363,40 +388,42 @@ export default function GameMap3D({ playerAvatar, onBuildingClick, onOpenShop, o
       {showMenu && !isEntering && (
         <div className="absolute top-20 right-4 pointer-events-auto z-50">
           <Card className="p-4 bg-white/95 backdrop-blur shadow-lg">
-            <div className="flex flex-col gap-2 w-48">
-              <Button
-                variant="outline"
-                className="justify-start"
-                onClick={() => {
-                  onOpenShop();
-                  setShowMenu(false);
-                }}
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Loja
+            <div className="flex flex-col gap-2 w-56 max-h-96 overflow-y-auto">
+              <Button variant="outline" className="justify-start" onClick={() => { onOpenShop(); setShowMenu(false); }}>
+                <Settings className="w-4 h-4 mr-2" /> Loja
               </Button>
-              <Button
-                variant="outline"
-                className="justify-start"
-                onClick={() => {
-                  onOpenProgress();
-                  setShowMenu(false);
-                }}
-              >
-                <Trophy className="w-4 h-4 mr-2" />
-                Progresso
+              <Button variant="outline" className="justify-start" onClick={() => { onOpenProgress(); setShowMenu(false); }}>
+                <Trophy className="w-4 h-4 mr-2" /> Progresso
               </Button>
-              <Button variant="outline" className="justify-start" disabled>
-                <BookOpen className="w-4 h-4 mr-2" />
-                Desafio Diário
+              <Button variant="outline" className="justify-start" onClick={() => { onOpenStudy?.(); setShowMenu(false); }}>
+                <BookOpen className="w-4 h-4 mr-2" /> Meu Material
               </Button>
-              <Button variant="outline" className="justify-start" disabled>
-                <Zap className="w-4 h-4 mr-2" />
-                Ranking
+              <Button variant="outline" className="justify-start" onClick={() => { onOpenSchool?.(); setShowMenu(false); }}>
+                <Palette className="w-4 h-4 mr-2" /> Prédio Personalizado
               </Button>
-              <Button variant="outline" className="justify-start" disabled>
-                <Users className="w-4 h-4 mr-2" />
-                Duelos
+              <Button variant="outline" className="justify-start" onClick={() => { onOpenTeacher?.(); setShowMenu(false); }}>
+                <Users className="w-4 h-4 mr-2" /> Painel do Professor
+              </Button>
+              <Button variant="outline" className="justify-start" onClick={() => { onOpenAchievements?.(); setShowMenu(false); }}>
+                <Trophy className="w-4 h-4 mr-2" /> Conquistas
+              </Button>
+              <Button variant="outline" className="justify-start" onClick={() => { onOpenDaily?.(); setShowMenu(false); }}>
+                <Zap className="w-4 h-4 mr-2" /> Desafio Diário
+              </Button>
+              <Button variant="outline" className="justify-start" onClick={() => { onOpenRanking?.(); setShowMenu(false); }}>
+                <Trophy className="w-4 h-4 mr-2" /> Ranking
+              </Button>
+              <Button variant="outline" className="justify-start" onClick={() => { onOpenDuel?.(); setShowMenu(false); }}>
+                <Zap className="w-4 h-4 mr-2" /> Duelos
+              </Button>
+              <Button variant="outline" className="justify-start" onClick={() => { onOpenStory?.(); setShowMenu(false); }}>
+                <BookOpen className="w-4 h-4 mr-2" /> Modo História
+              </Button>
+              <Button variant="outline" className="justify-start" onClick={() => { onOpenNotifications?.(); setShowMenu(false); }}>
+                <Heart className="w-4 h-4 mr-2" /> Notificações
+              </Button>
+              <Button variant="outline" className="justify-start" onClick={() => { onOpenAvatarAI?.(); setShowMenu(false); }}>
+                <Palette className="w-4 h-4 mr-2" /> Avatar IA
               </Button>
             </div>
           </Card>
