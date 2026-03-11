@@ -360,3 +360,20 @@
 - [x] Indicador visual de dificuldade no HUD do quiz (estrelas: 1=fácil, 2=médio, 3=difícil)
 - [x] Mensagem motivacional ao subir de dificuldade ("Você evoluiu! Agora é difícil 🔥")
 - [x] Testes vitest para a lógica adaptativa
+
+## 7 Melhorias de Negócio (Mar 2026)
+
+- [x] Schema: adicionar campos age (int), grade (varchar), gender (enum masculino/feminino) na tabela players
+- [x] Migration SQL aplicada
+- [x] Onboarding: etapa de seleção de gênero (menino/menina) com avatar preview
+- [x] Onboarding: campo de idade obrigatório
+- [x] Onboarding: campo de série BNCC opcional (1º ao 9º ano Ensino Fundamental)
+- [x] Lógica BNCC: calcular série pela idade se não informada (6a=1º, 7a=2º, ..., 14a=9º)
+- [x] Quiz: gerar questões direcionadas à série do aluno (prompt LLM com contexto da série)
+- [x] Renomear "Prédio Personalizado" → "Minha Escola" em toda a UI
+- [x] Fluxo upload de material: verificar se aluno criou escola antes de permitir upload
+- [x] Tela StudyMaterial: redirecionar para criar escola se schoolName estiver vazio
+- [x] Avatar IA: mover para dentro do menu Avatar (não mais item separado no menu principal)
+- [x] Avatar: seleção de gênero com cabelos, roupas e acessórios masculinos e femininos
+- [x] Avatar masculino: cabelos curto/topete/moicano, roupas camiseta/camisa/moletom
+- [x] Avatar feminino: cabelos comprido/trança/coque, roupas vestido/blusa/saia

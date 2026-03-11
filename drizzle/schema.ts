@@ -39,7 +39,8 @@ export const players = mysqlTable("players", {
   avatarShareCode: varchar("avatarShareCode", { length: 8 }).unique(),
   parentEmail: varchar("parentEmail", { length: 320 }),
   gender: mysqlEnum("gender", ["masculino", "feminino"]).default("masculino"),
-  grade: mysqlEnum("grade", ["1", "2", "3", "4", "5"]),
+  age: int("age"),
+  grade: mysqlEnum("grade", ["1", "2", "3", "4", "5", "6", "7", "8", "9"]),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

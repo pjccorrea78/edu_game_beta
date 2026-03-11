@@ -6,7 +6,7 @@ import BlockyAvatar from "@/components/BlockyAvatar";
 import { Sparkles, ArrowLeft, Wand2, RefreshCw, Check, Lightbulb, History } from "lucide-react";
 import { toast } from "sonner";
 
-type Props = { onBack: () => void };
+type Props = { onBack: () => void; embedded?: boolean };
 
 type GeneratedAvatar = {
   skinColor: string;
@@ -45,7 +45,7 @@ const SUGGESTIONS = [
   "Uma artista colorida com todas as cores do arco-íris",
 ];
 
-export default function AvatarAI({ onBack }: Props) {
+export default function AvatarAI({ onBack, embedded = false }: Props) {
   const { sessionId, player, refreshPlayer } = useGame();
   const [description, setDescription] = useState("");
   const [generated, setGenerated] = useState<GeneratedAvatar | null>(null);
@@ -123,9 +123,9 @@ export default function AvatarAI({ onBack }: Props) {
       };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-500 to-pink-500 relative overflow-hidden">
-      {/* Animated background circles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className={embedded ? "relative" : "min-h-screen bg-gradient-to-br from-violet-600 via-purple-500 to-pink-500 relative overflow-hidden"}>
+      {/* Animated background circles - hidden when embedded */}
+      {!embedded && <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(8)].map((_, i) => (
           <motion.div
             key={i}
@@ -140,7 +140,7 @@ export default function AvatarAI({ onBack }: Props) {
             transition={{ duration: 8 + i * 2, repeat: Infinity, ease: "linear" }}
           />
         ))}
-      </div>
+      </div>}
 
       {/* Magic particles */}
       <AnimatePresence>
@@ -157,9 +157,9 @@ export default function AvatarAI({ onBack }: Props) {
         ))}
       </AnimatePresence>
 
-      <div className="relative z-10 max-w-lg mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
+      <div className={embedded ? "relative z-10" : "relative z-10 max-w-lg mx-auto px-4 py-6"}>
+        {/* Header - hidden when embedded */}
+        {!embedded && <div className="flex items-center gap-3 mb-6">
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -182,7 +182,7 @@ export default function AvatarAI({ onBack }: Props) {
           >
             <History className="w-5 h-5" />
           </motion.button>
-        </div>
+        </div>}
 
         {/* History panel */}
         <AnimatePresence>

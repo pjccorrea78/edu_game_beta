@@ -142,6 +142,15 @@ export async function updatePlayerGuardianEmail(playerId: number, email: string)
   await db.update(players).set({ guardianEmail: email }).where(eq(players.id, playerId));
 }
 
+export async function updatePlayerProfile(
+  playerId: number,
+  data: { age?: number; grade?: "1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"; gender?: "masculino"|"feminino" }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(players).set(data).where(eq(players.id, playerId));
+}
+
 export async function updatePlayerSchoolName(playerId: number, schoolName: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

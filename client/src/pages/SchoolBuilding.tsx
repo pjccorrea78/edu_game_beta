@@ -433,7 +433,7 @@ export default function SchoolBuilding({ onBack, onEnterRoom, onAddMaterial }: P
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <School className="w-5 h-5 text-violet-600" />
-            <span className="font-black text-gray-800 text-lg">Meu Prédio</span>
+            <span className="font-black text-gray-800 text-lg">Minha Escola</span>
           </div>
           <p className="text-xs text-gray-500">Salas criadas com seus materiais</p>
         </div>
@@ -488,7 +488,7 @@ export default function SchoolBuilding({ onBack, onEnterRoom, onAddMaterial }: P
                   }}
                 >
                   <Pencil className="w-4 h-4" />
-                  Dar nome ao seu prédio
+                  Dar nome à sua escola
                 </motion.button>
               )}
 

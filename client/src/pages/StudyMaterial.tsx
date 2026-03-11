@@ -34,6 +34,8 @@ const STATUS_CONFIG = {
 
 export default function StudyMaterial({ onBack, onStartCustomQuiz }: Props) {
   const { sessionId, player } = useGame();
+  const schoolName = (player as unknown as { schoolName?: string | null })?.schoolName ?? null;
+  const hasSchool = Boolean(schoolName);
   const [view, setView] = useState<ViewState>("list");
   const [title, setTitle] = useState("");
   const [contentText, setContentText] = useState("");
@@ -147,6 +149,48 @@ export default function StudyMaterial({ onBack, onStartCustomQuiz }: Props) {
   };
 
   const materials = listQuery.data?.materials ?? [];
+
+  // Gate: precisa ter escola criada
+  if (!hasSchool) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-violet-50 to-indigo-50 flex flex-col">
+        <div className="p-4 flex items-center gap-3 bg-white shadow-sm">
+          <motion.button
+            className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onBack}
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </motion.button>
+          <h1 className="font-black text-gray-800 text-lg">Meu Material de Estudo</h1>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-3xl shadow-xl p-8 max-w-sm w-full"
+          >
+            <div className="text-6xl mb-4">🏫</div>
+            <h2 className="font-black text-gray-800 text-xl mb-2">Crie sua Escola Primeiro!</h2>
+            <p className="text-gray-500 text-sm mb-6">
+              Para enviar materiais de estudo, você precisa primeiro criar e nomear a sua escola.
+              Acesse <strong>Minha Escola</strong> no menu para criar a sua!
+            </p>
+            <motion.button
+              className="w-full py-3 rounded-2xl font-black text-white"
+              style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)" }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={onBack}
+            >
+              Ir para o Menu
+            </motion.button>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-violet-50 to-indigo-50 flex flex-col">

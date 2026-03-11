@@ -3,14 +3,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
 import { useGame } from "@/contexts/GameContext";
 import BlockyAvatar from "@/components/BlockyAvatar";
-import { ArrowLeft, Zap, ShoppingBag, Palette, Lock, Check, Star } from "lucide-react";
+import AvatarAI from "./AvatarAI";
+import { ArrowLeft, Zap, ShoppingBag, Palette, Lock, Check, Star, Bot } from "lucide-react";
 import { toast } from "sonner";
+
+const HAIR_STYLES_MALE = [
+  { value: "short", label: "Curto", emoji: "💇" },
+  { value: "topete", label: "Topete", emoji: "🧑" },
+  { value: "moicano", label: "Moicano", emoji: "😎" },
+];
+
+const HAIR_STYLES_FEMALE = [
+  { value: "long", label: "Comprido", emoji: "👩" },
+  { value: "tranca", label: "Trança", emoji: "💁" },
+  { value: "coque", label: "Coque", emoji: "🙆" },
+];
 
 type Props = {
   onBack: () => void;
 };
 
-type Tab = "avatar" | "shop";
+type Tab = "avatar" | "shop" | "ai";
 
 const SKIN_COLORS = [
   { label: "Pêssego", value: "#FDBCB4" },
@@ -72,12 +85,22 @@ const ACCESSORY_MAP: Record<number, string> = { 9: "glasses", 10: "backpack", 11
 export default function AvatarShop({ onBack }: Props) {
   const { sessionId, player, refreshPlayer } = useGame();
   const [tab, setTab] = useState<Tab>("avatar");
-  const [avatarConfig, setAvatarConfig] = useState({
+  const [avatarConfig, setAvatarConfig] = useState<{
+    skinColor: string;
+    hairColor: string;
+    shirtColor: string;
+    pantsColor: string;
+    equippedItems: number[];
+    gender?: "masculino" | "feminino";
+    hairStyle?: string;
+  }>({
     skinColor: "#FDBCB4",
     hairColor: "#4A2C2A",
     shirtColor: "#4169E1",
     pantsColor: "#4682B4",
-    equippedItems: [] as number[],
+    equippedItems: [],
+    gender: ((player as unknown as { gender?: string })?.gender as "masculino" | "feminino") ?? "masculino",
+    hairStyle: "short",
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -167,6 +190,7 @@ export default function AvatarShop({ onBack }: Props) {
         {[
           { id: "avatar" as Tab, label: "Avatar", icon: <Palette className="w-4 h-4" /> },
           { id: "shop" as Tab, label: "Loja", icon: <ShoppingBag className="w-4 h-4" /> },
+          { id: "ai" as Tab, label: "Avatar IA", icon: <Bot className="w-4 h-4" /> },
         ].map((t) => (
           <motion.button
             key={t.id}
@@ -253,6 +277,72 @@ export default function AvatarShop({ onBack }: Props) {
                   </div>
                 </div>
               ))}
+
+              {/* Gênero */}
+              <div className="bg-white rounded-2xl shadow p-4 mb-3">
+                <p className="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  <span>👤</span> Gênero do Avatar
+                </p>
+                <div className="flex gap-3">
+                  {(["masculino", "feminino"] as const).map((g) => (
+                    <motion.button
+                      key={g}
+                      className={`flex-1 py-3 rounded-2xl font-bold text-sm flex flex-col items-center gap-2 border-2 transition-all ${
+                        avatarConfig.gender === g
+                          ? "bg-purple-100 border-purple-400 text-purple-700"
+                          : "bg-gray-50 border-gray-200 text-gray-600"
+                      }`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        const defaultHair = g === "masculino" ? "curto" : "comprido";
+                        setAvatarConfig((prev) => ({ ...prev, gender: g, hairStyle: defaultHair }));
+                      }}
+                    >
+                      <span className="text-2xl">{g === "masculino" ? "👦" : "👧"}</span>
+                      {g === "masculino" ? "Menino" : "Menina"}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Estilo de Cabelo */}
+              <div className="bg-white rounded-2xl shadow p-4 mb-3">
+                <p className="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  <span>💇</span> Estilo de Cabelo
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(avatarConfig.gender === "feminino"
+                    ? [
+                        { value: "comprido", label: "Comprido", emoji: "👩" },
+                        { value: "tranca", label: "Trança", emoji: "💁" },
+                        { value: "coque", label: "Coque", emoji: "🙆" },
+                        { value: "franja", label: "Franja", emoji: "💆" },
+                      ]
+                    : [
+                        { value: "curto", label: "Curto", emoji: "👦" },
+                        { value: "topete", label: "Topete", emoji: "🧑" },
+                        { value: "moicano", label: "Moicano", emoji: "😎" },
+                        { value: "calvo", label: "Careca", emoji: "👴" },
+                      ]
+                  ).map((style) => (
+                    <motion.button
+                      key={style.value}
+                      className={`px-3 py-2 rounded-xl text-sm font-semibold border-2 flex items-center gap-1.5 ${
+                        avatarConfig.hairStyle === style.value
+                          ? "bg-purple-100 border-purple-400 text-purple-700"
+                          : "bg-gray-50 border-gray-200 text-gray-600"
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setAvatarConfig((prev) => ({ ...prev, hairStyle: style.value }))}
+                    >
+                      <span>{style.emoji}</span>
+                      {style.label}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
 
               {/* Equipped items */}
               {ownedIds.length > 0 && (
@@ -392,6 +482,17 @@ export default function AvatarShop({ onBack }: Props) {
                   </div>
                 );
               })}
+            </motion.div>
+          )}
+
+          {tab === "ai" && (
+            <motion.div
+              key="ai"
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 20, opacity: 0 }}
+            >
+              <AvatarAI onBack={() => setTab("avatar")} embedded />
             </motion.div>
           )}
         </AnimatePresence>

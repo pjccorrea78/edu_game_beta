@@ -13,6 +13,7 @@ import {
   updatePlayerNickname,
   updatePlayerGuardianEmail,
   updatePlayerSchoolName,
+  updatePlayerProfile,
   saveAvatarImage,
   createAvatarShare,
   getAvatarShare,
@@ -140,6 +141,25 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    updateProfile: publicProcedure
+      .input(
+        z.object({
+          sessionId: z.string(),
+          age: z.number().int().min(5).max(18).optional(),
+          grade: z.enum(["1","2","3","4","5","6","7","8","9"]).optional(),
+          gender: z.enum(["masculino","feminino"]).optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        await updatePlayerProfile(player.id, {
+          age: input.age,
+          grade: input.grade,
+          gender: input.gender,
+        });
+        return { success: true };
+      }),
+
     updateSchoolName: publicProcedure
       .input(z.object({ sessionId: z.string(), schoolName: z.string().min(1).max(64) }))
       .mutation(async ({ input }) => {
@@ -193,9 +213,32 @@ export const appRouter = router({
           sessionId: z.string(),
           discipline: disciplineSchema,
           difficulty: z.enum(["easy", "medium", "hard"]).optional(),
+          grade: z.enum(["1","2","3","4","5","6","7","8","9"]).optional(),
         })
       )
       .query(async ({ input }) => {
+        // Buscar série do jogador se não fornecida
+        let playerGrade = input.grade;
+        if (!playerGrade) {
+          const player = await getOrCreatePlayer(input.sessionId);
+          playerGrade = (player.grade as "1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9") ?? undefined;
+          // Se ainda não tem série mas tem idade, calcular
+          if (!playerGrade && player.age) {
+            const age = player.age;
+            if (age <= 6) playerGrade = "1";
+            else if (age === 7) playerGrade = "2";
+            else if (age === 8) playerGrade = "3";
+            else if (age === 9) playerGrade = "4";
+            else if (age === 10) playerGrade = "5";
+            else if (age === 11) playerGrade = "6";
+            else if (age === 12) playerGrade = "7";
+            else if (age === 13) playerGrade = "8";
+            else playerGrade = "9";
+          }
+        }
+
+        const gradeLabel = playerGrade ? `${playerGrade}º Ano do Ensino Fundamental` : "Ensino Fundamental";
+
         let questions = await getQuestionsByDiscipline(
           input.discipline as Discipline,
           10,
@@ -205,26 +248,31 @@ export const appRouter = router({
         // Se não há questões suficientes, gerar via LLM e salvar no banco
         if (questions.length < 5) {
           const allDisciplineNames: Record<string, string> = {
-            matematica: "Matemática (nível fundamental)",
-            portugues: "Língua Portuguesa (nível fundamental)",
-            geografia: "Geografia (nível fundamental)",
-            historia: "História (nível fundamental)",
-            ciencias: "Ciências (nível fundamental)",
-            arte: "Artes Visuais e Cultura (nível fundamental)",
-            educacao_fisica: "Educação Física e Saúde (nível fundamental)",
-            ensino_religioso: "Ensino Religioso e Valores Humanos (nível fundamental)",
+            matematica: "Matemática",
+            portugues: "Língua Portuguesa",
+            geografia: "Geografia",
+            historia: "História",
+            ciencias: "Ciências",
+            arte: "Artes Visuais e Cultura",
+            educacao_fisica: "Educação Física e Saúde",
+            ensino_religioso: "Ensino Religioso e Valores Humanos",
           };
           const disciplineName = allDisciplineNames[input.discipline] ?? input.discipline;
           try {
-            const genPrompt = `Você é um professor especialista em educação infantil. Gere 10 perguntas de múltipla escolha sobre ${disciplineName} com dificuldade média (para crianças de 8-12 anos).
+            const genPrompt = `Você é um professor especialista em educação. Gere 10 perguntas de múltipla escolha sobre ${disciplineName} para alunos do ${gradeLabel}, seguindo a Base Nacional Comum Curricular (BNCC).
 
 Retorne APENAS um JSON válido:
 {"questions":[{"questionText":"...","optionA":"...","optionB":"...","optionC":"...","optionD":"...","correctOption":"A","explanation":"..."}]}
 
-Regras: perguntas claras, 4 alternativas plausíveis, apenas uma correta, explicação curta, linguagem simples.`;
+Regras:
+- Adequado ao ${gradeLabel} conforme BNCC
+- Linguagem acessível para a faixa etária
+- Perguntas claras, 4 alternativas plausíveis, apenas uma correta
+- Explicação curta e didática
+- Varie os temas dentro da disciplina`;
             const llmResp = await invokeLLM({
               messages: [
-                { role: "system", content: "Você é um professor que cria perguntas educativas para crianças." },
+                { role: "system", content: `Você é um professor especialista em educação básica brasileira. Cria perguntas educativas seguindo a BNCC para o ${gradeLabel}.` },
                 { role: "user", content: genPrompt },
               ],
               response_format: {

@@ -630,7 +630,7 @@ export default function GameMap3D({
                 { label: "🛒 Loja",              fn: () => { onOpenShop(); setShowMenu(false); } },
                 { label: "📊 Progresso",          fn: () => { onOpenProgress(); setShowMenu(false); } },
                 { label: "📚 Meu Material",       fn: () => { onOpenStudy?.(); setShowMenu(false); } },
-                { label: "🏫 Prédio Personalizado", fn: () => { onOpenSchool?.(); setShowMenu(false); } },
+                { label: "🏫 Minha Escola",       fn: () => { onOpenSchool?.(); setShowMenu(false); } },
                 { label: "👩‍🏫 Painel do Professor", fn: () => { onOpenTeacher?.(); setShowMenu(false); } },
                 { label: "🏆 Conquistas",         fn: () => { onOpenAchievements?.(); setShowMenu(false); } },
                 { label: "⚡ Desafio Diário",     fn: () => { onOpenDaily?.(); setShowMenu(false); } },
@@ -638,7 +638,6 @@ export default function GameMap3D({
                 { label: "⚔️ Duelos",             fn: () => { onOpenDuel?.(); setShowMenu(false); } },
                 { label: "📖 Modo História",      fn: () => { onOpenStory?.(); setShowMenu(false); } },
                 { label: "🔔 Notificações",       fn: () => { onOpenNotifications?.(); setShowMenu(false); } },
-                { label: "🤖 Avatar IA",          fn: () => { onOpenAvatarAI?.(); setShowMenu(false); } },
               ].map(({ label, fn }) => (
                 <button
                   key={label}
