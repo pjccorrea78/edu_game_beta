@@ -387,6 +387,49 @@ Regras: perguntas claras, 4 alternativas plausíveis, apenas uma correta, explic
           player: updatedPlayer,
         };
       }),
+
+    // Retorna a dificuldade adaptativa para o aluno em uma disciplina
+    getAdaptiveDifficulty: publicProcedure
+      .input(z.object({ sessionId: z.string(), discipline: disciplineSchema }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const history = await getPlayerQuizHistory(player.id);
+
+        // Filtrar histórico da disciplina (últimas 5 sessões)
+        const disciplineHistory = history
+          .filter((h) => h.discipline === input.discipline && h.completed)
+          .slice(0, 5);
+
+        if (disciplineHistory.length === 0) {
+          return { difficulty: "easy" as const, reason: "primeira_vez", attempts: 0, avgAccuracy: 0 };
+        }
+
+        // Calcular média de acerto das últimas sessões
+        const totalCorrect = disciplineHistory.reduce((sum, s) => sum + (s.correctAnswers ?? 0), 0);
+        const totalQuestions = disciplineHistory.length * 10;
+        const avgAccuracy = totalCorrect / totalQuestions;
+
+        let difficulty: "easy" | "medium" | "hard";
+        let reason: string;
+
+        if (avgAccuracy >= 0.8) {
+          difficulty = "hard";
+          reason = "excelente_desempenho";
+        } else if (avgAccuracy >= 0.5) {
+          difficulty = "medium";
+          reason = "bom_desempenho";
+        } else {
+          difficulty = "easy";
+          reason = "precisa_praticar";
+        }
+
+        return {
+          difficulty,
+          reason,
+          attempts: disciplineHistory.length,
+          avgAccuracy: Math.round(avgAccuracy * 100),
+        };
+      }),
   }),
 
   // ─── Equipment / Shop ─────────────────────────────────────────────────────

@@ -107,9 +107,17 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
   const [timerActive, setTimerActive] = useState(false);
   const [lives, setLives] = useState(3);
   const [showHeartBreak, setShowHeartBreak] = useState(false);
+  const [adaptiveDifficulty, setAdaptiveDifficulty] = useState<"easy" | "medium" | "hard">("easy");
+  const [difficultyReason, setDifficultyReason] = useState<string>("primeira_vez");
+  const [showDifficultyBanner, setShowDifficultyBanner] = useState(false);
 
-  const getQuestionsQuery = trpc.quiz.getQuestions.useQuery(
+  const utils = trpc.useUtils();
+  const getAdaptiveDifficultyQuery = trpc.quiz.getAdaptiveDifficulty.useQuery(
     { sessionId, discipline: discipline! },
+    { enabled: false }
+  );
+  const getQuestionsQuery = trpc.quiz.getQuestions.useQuery(
+    { sessionId, discipline: discipline!, difficulty: adaptiveDifficulty },
     { enabled: false }
   );
   const getCustomQuestionsQuery = trpc.studyMaterial.getQuestions.useQuery(
@@ -151,9 +159,38 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
             setPhase("error");
           }
         } else if (discipline) {
-          const result = await getQuestionsQuery.refetch();
-          if (result.data?.questions && result.data.questions.length > 0) {
-            setQuestions(result.data.questions.slice(0, 10));
+          // 1. Buscar dificuldade adaptativa com base no histórico
+          let chosenDifficulty: "easy" | "medium" | "hard" = "easy";
+          let reason = "primeira_vez";
+          let prevAttempts = 0;
+          try {
+            const diffResult = await getAdaptiveDifficultyQuery.refetch();
+            if (diffResult.data) {
+              chosenDifficulty = diffResult.data.difficulty;
+              reason = diffResult.data.reason;
+              prevAttempts = diffResult.data.attempts;
+              setAdaptiveDifficulty(chosenDifficulty);
+              setDifficultyReason(reason);
+            }
+          } catch {
+            // Se falhar, usa easy como padrão
+          }
+
+          // 2. Mostrar banner de dificuldade se não for primeira vez
+          if (prevAttempts > 0) {
+            setShowDifficultyBanner(true);
+            await new Promise((r) => setTimeout(r, 2000));
+            setShowDifficultyBanner(false);
+          }
+
+          // 3. Buscar questões com a dificuldade calculada
+          const result = await utils.quiz.getQuestions.fetch({
+            sessionId,
+            discipline,
+            difficulty: chosenDifficulty,
+          });
+          if (result?.questions && result.questions.length > 0) {
+            setQuestions(result.questions.slice(0, 10));
             const session = await startSession.mutateAsync({ sessionId, discipline });
             setQuizSessionId(session.sessionId);
             setPhase("quiz");
@@ -482,11 +519,39 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
 
   if (!currentQ) return null;
 
+  const difficultyBannerText = {
+    easy: { label: "Nível Fácil", icon: "⭐", color: "#4ECDC4", msg: "Vamos lá! Aquece os motores!" },
+    medium: { label: "Nível Médio", icon: "⭐⭐", color: "#F7DC6F", msg: "Bom desempenho! Subindo de nível! 🚀" },
+    hard: { label: "Nível Difícil", icon: "⭐⭐⭐", color: "#FF6B6B", msg: "Excelente! Desafio máximo! 🔥" },
+  }[adaptiveDifficulty];
+
   return (
     <div
       className="min-h-screen flex flex-col"
       style={{ background: `linear-gradient(180deg, ${info.color}33 0%, #f8f9ff 40%)` }}
     >
+      {/* Difficulty Banner */}
+      {showDifficultyBanner && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.5)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div
+            className="rounded-3xl p-8 text-center shadow-2xl"
+            style={{ background: difficultyBannerText.color }}
+            initial={{ scale: 0.5, rotate: -10 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <div className="text-6xl mb-3">{difficultyBannerText.icon}</div>
+            <h2 className="text-3xl font-black text-white mb-1">{difficultyBannerText.label}</h2>
+            <p className="text-white/90 font-semibold">{difficultyBannerText.msg}</p>
+          </motion.div>
+        </motion.div>
+      )}
       {/* Header */}
       <div className="p-4 flex items-center gap-3">
         <motion.button
@@ -518,19 +583,32 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
         </div>
       </div>
 
-      {/* Lives HUD */}
-      <div className="px-4 mb-1 flex items-center gap-1">
-        {[1, 2, 3].map(i => (
-          <motion.span
-            key={i}
-            className="text-xl"
-            animate={showHeartBreak && i === lives + 1 ? { scale: [1, 1.4, 0.6, 1], rotate: [0, -20, 20, 0] } : {}}
-            transition={{ duration: 0.5 }}
-          >
-            {i <= lives ? "❤️" : "🖤"}
-          </motion.span>
-        ))}
-        <span className="text-xs text-gray-400 ml-1 font-medium">{lives === 0 ? "Sem vidas!" : `${lives} vida${lives !== 1 ? "s" : ""}`}</span>
+      {/* Lives HUD + Difficulty Indicator */}
+      <div className="px-4 mb-1 flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          {[1, 2, 3].map(i => (
+            <motion.span
+              key={i}
+              className="text-xl"
+              animate={showHeartBreak && i === lives + 1 ? { scale: [1, 1.4, 0.6, 1], rotate: [0, -20, 20, 0] } : {}}
+              transition={{ duration: 0.5 }}
+            >
+              {i <= lives ? "❤️" : "🖤"}
+            </motion.span>
+          ))}
+          <span className="text-xs text-gray-400 ml-1 font-medium">{lives === 0 ? "Sem vidas!" : `${lives} vida${lives !== 1 ? "s" : ""}`}</span>
+        </div>
+        {/* Difficulty stars */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-400 mr-1">
+            {adaptiveDifficulty === "easy" ? "Fácil" : adaptiveDifficulty === "medium" ? "Médio" : "Difícil"}
+          </span>
+          {[1, 2, 3].map(i => (
+            <span key={i} className="text-sm">
+              {i <= (adaptiveDifficulty === "easy" ? 1 : adaptiveDifficulty === "medium" ? 2 : 3) ? "⭐" : "☆"}
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* Question counter */}

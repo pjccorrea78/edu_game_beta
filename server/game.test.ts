@@ -273,6 +273,18 @@ describe("quiz router", () => {
     expect(result.pointsEarned).toBe(80);
     expect(result.newTotal).toBeDefined();
   });
+
+  it("getAdaptiveDifficulty returns easy for first-time player", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.quiz.getAdaptiveDifficulty({
+      sessionId: "test-session-123",
+      discipline: "matematica",
+    });
+    expect(result.difficulty).toBe("easy");
+    expect(result.reason).toBe("primeira_vez");
+    expect(result.attempts).toBe(0);
+  });
 });
 
 describe("shop router", () => {

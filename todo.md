@@ -350,3 +350,13 @@
 - [x] Corrigir erro strokeDashoffset undefined no resultado do quiz
 - [x] Corrigir teste unitário que falhava por timeout (mock invokeLLM)
 - [x] Testar todas as 8 matérias/prédios — 10 questões disponíveis para cada
+
+## Dificuldade Adaptativa
+
+- [x] Router: quiz.getAdaptiveDifficulty — calcula dificuldade com base no histórico de desempenho por disciplina
+- [x] Lógica: easy se acerto < 50%, medium se 50–79%, hard se >= 80%
+- [x] Passar dificuldade calculada automaticamente ao getQuestions no frontend
+- [x] Garantir questões de cada dificuldade no banco (gerar via LLM se faltar)
+- [x] Indicador visual de dificuldade no HUD do quiz (estrelas: 1=fácil, 2=médio, 3=difícil)
+- [x] Mensagem motivacional ao subir de dificuldade ("Você evoluiu! Agora é difícil 🔥")
+- [x] Testes vitest para a lógica adaptativa
