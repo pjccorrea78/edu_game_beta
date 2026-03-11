@@ -332,3 +332,21 @@
 - [x] Joystick não move o personagem (delta não chega ao loop de animação)
 - [x] Menu duplicado: aparece tanto no topo quanto na base da tela
 - [x] Garantir que apenas 1 botão de menu apareça em mobile
+
+## Auditoria Completa do Jogo
+
+- [ ] Diagnosticar erros no console (browser e servidor)
+- [ ] Corrigir carregamento eterno de questões (Artes e outras matérias)
+- [ ] Testar todos os 8 prédios/matérias
+- [ ] Corrigir erros de tRPC/LLM nas procedures de quiz
+- [ ] Verificar e corrigir todas as telas do menu (Loja, Progresso, etc.)
+- [ ] Garantir que o fluxo completo funciona: login → mapa → prédio → quiz → pontos
+
+## Auditoria Completa do Jogo (Mar 2026)
+
+- [x] Identificar todas as matérias sem questões no banco (Arte, Ed. Física, Ensino Religioso)
+- [x] Corrigir carregamento eterno de questões — gerar via LLM automaticamente quando banco vazio
+- [x] Adicionar tela de erro amigável no QuizScreen (em vez de loading eterno)
+- [x] Corrigir erro strokeDashoffset undefined no resultado do quiz
+- [x] Corrigir teste unitário que falhava por timeout (mock invokeLLM)
+- [x] Testar todas as 8 matérias/prédios — 10 questões disponíveis para cada

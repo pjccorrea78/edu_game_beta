@@ -2,6 +2,27 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
+// Mock the LLM module to avoid real API calls in tests
+vi.mock("./_core/llm", () => ({
+  invokeLLM: vi.fn().mockResolvedValue({
+    choices: [{
+      message: {
+        content: JSON.stringify({
+          questions: Array.from({ length: 5 }, (_, i) => ({
+            questionText: `Pergunta ${i + 1}?`,
+            optionA: "A",
+            optionB: "B",
+            optionC: "C",
+            optionD: "D",
+            correctOption: "A",
+            explanation: "Explicação",
+          }))
+        })
+      }
+    }]
+  }),
+}));
+
 // Mock the database module
 vi.mock("./db", () => ({
   getOrCreatePlayer: vi.fn().mockResolvedValue({
@@ -27,22 +48,22 @@ vi.mock("./db", () => ({
   updatePlayerAvatar: vi.fn().mockResolvedValue(undefined),
   updatePlayerNickname: vi.fn().mockResolvedValue(undefined),
   updatePlayerGuardianEmail: vi.fn().mockResolvedValue(undefined),
-  getQuestionsByDiscipline: vi.fn().mockResolvedValue([
-    {
-      id: 1,
+  getQuestionsByDiscipline: vi.fn().mockResolvedValue(
+    Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
       discipline: "matematica",
       difficulty: "easy",
-      questionText: "Quanto é 2 + 2?",
-      optionA: "3",
-      optionB: "4",
-      optionC: "5",
-      optionD: "6",
+      questionText: `Quanto é ${i + 1} + ${i + 1}?`,
+      optionA: `${(i + 1) * 2 - 1}`,
+      optionB: `${(i + 1) * 2}`,
+      optionC: `${(i + 1) * 2 + 1}`,
+      optionD: `${(i + 1) * 2 + 2}`,
       correctOption: "B",
-      explanation: "2 + 2 = 4",
+      explanation: `${i + 1} + ${i + 1} = ${(i + 1) * 2}`,
       isAiGenerated: false,
       createdAt: new Date(),
-    },
-  ]),
+    }))
+  ),
   countQuestionsByDiscipline: vi.fn().mockResolvedValue(10),
   createQuizSession: vi.fn().mockResolvedValue({
     id: 42,

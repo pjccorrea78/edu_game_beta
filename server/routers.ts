@@ -196,16 +196,100 @@ export const appRouter = router({
         })
       )
       .query(async ({ input }) => {
-        const count = await countQuestionsByDiscipline(input.discipline as Discipline);
         let questions = await getQuestionsByDiscipline(
           input.discipline as Discipline,
           10,
           input.difficulty
         );
-        // If not enough questions, generate with LLM
-        if (questions.length < 10) {
-          questions = await getQuestionsByDiscipline(input.discipline as Discipline, 10);
+
+        // Se não há questões suficientes, gerar via LLM e salvar no banco
+        if (questions.length < 5) {
+          const allDisciplineNames: Record<string, string> = {
+            matematica: "Matemática (nível fundamental)",
+            portugues: "Língua Portuguesa (nível fundamental)",
+            geografia: "Geografia (nível fundamental)",
+            historia: "História (nível fundamental)",
+            ciencias: "Ciências (nível fundamental)",
+            arte: "Artes Visuais e Cultura (nível fundamental)",
+            educacao_fisica: "Educação Física e Saúde (nível fundamental)",
+            ensino_religioso: "Ensino Religioso e Valores Humanos (nível fundamental)",
+          };
+          const disciplineName = allDisciplineNames[input.discipline] ?? input.discipline;
+          try {
+            const genPrompt = `Você é um professor especialista em educação infantil. Gere 10 perguntas de múltipla escolha sobre ${disciplineName} com dificuldade média (para crianças de 8-12 anos).
+
+Retorne APENAS um JSON válido:
+{"questions":[{"questionText":"...","optionA":"...","optionB":"...","optionC":"...","optionD":"...","correctOption":"A","explanation":"..."}]}
+
+Regras: perguntas claras, 4 alternativas plausíveis, apenas uma correta, explicação curta, linguagem simples.`;
+            const llmResp = await invokeLLM({
+              messages: [
+                { role: "system", content: "Você é um professor que cria perguntas educativas para crianças." },
+                { role: "user", content: genPrompt },
+              ],
+              response_format: {
+                type: "json_schema",
+                json_schema: {
+                  name: "quiz_questions",
+                  strict: true,
+                  schema: {
+                    type: "object",
+                    properties: {
+                      questions: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            questionText: { type: "string" },
+                            optionA: { type: "string" },
+                            optionB: { type: "string" },
+                            optionC: { type: "string" },
+                            optionD: { type: "string" },
+                            correctOption: { type: "string", enum: ["A", "B", "C", "D"] },
+                            explanation: { type: "string" },
+                          },
+                          required: ["questionText", "optionA", "optionB", "optionC", "optionD", "correctOption", "explanation"],
+                          additionalProperties: false,
+                        },
+                      },
+                    },
+                    required: ["questions"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+            });
+            const rawContent = llmResp.choices[0]?.message?.content;
+            const content = typeof rawContent === "string" ? rawContent : null;
+            if (content) {
+              const parsed = JSON.parse(content) as { questions: Array<{
+                questionText: string; optionA: string; optionB: string;
+                optionC: string; optionD: string;
+                correctOption: "A" | "B" | "C" | "D"; explanation: string;
+              }> };
+              for (const q of parsed.questions) {
+                await insertQuestion({
+                  discipline: input.discipline as Discipline,
+                  difficulty: "medium",
+                  questionText: q.questionText,
+                  optionA: q.optionA,
+                  optionB: q.optionB,
+                  optionC: q.optionC,
+                  optionD: q.optionD,
+                  correctOption: q.correctOption,
+                  explanation: q.explanation,
+                  isAiGenerated: true,
+                });
+              }
+              // Buscar as questões recém-geradas
+              questions = await getQuestionsByDiscipline(input.discipline as Discipline, 10);
+            }
+          } catch (err) {
+            console.error("[getQuestions] LLM generation failed:", err);
+          }
         }
+
+        const count = questions.length;
         return { questions, totalAvailable: count };
       }),
 

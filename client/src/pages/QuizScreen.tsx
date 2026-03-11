@@ -98,7 +98,8 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [quizSessionId, setQuizSessionId] = useState<number | null>(null);
-  const [phase, setPhase] = useState<"loading" | "quiz" | "result">("loading");
+  const [phase, setPhase] = useState<"loading" | "quiz" | "result" | "error">("loading");
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [pointsDelta, setPointsDelta] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [finalResult, setFinalResult] = useState<QuizResult | null>(null);
@@ -122,9 +123,14 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
   // Load questions and start session
   useEffect(() => {
     async function init() {
+      // Timeout de segurança: se demorar mais de 30s, mostrar erro
+      const timeout = setTimeout(() => {
+        setLoadError("Não foi possível carregar as questões. Tente novamente.");
+        setPhase("error");
+      }, 30000);
+
       try {
         if (isCustomQuiz && customMaterialId) {
-          // Load custom quiz questions from study material
           const result = await getCustomQuestionsQuery.refetch();
           if (result.data?.questions && result.data.questions.length > 0) {
             const qs = result.data.questions.map((q) => ({
@@ -140,6 +146,9 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
             setQuestions(qs.slice(0, 10));
             setPhase("quiz");
             setTimerActive(true);
+          } else {
+            setLoadError("Nenhuma questão encontrada para este material.");
+            setPhase("error");
           }
         } else if (discipline) {
           const result = await getQuestionsQuery.refetch();
@@ -149,10 +158,17 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
             setQuizSessionId(session.sessionId);
             setPhase("quiz");
             setTimerActive(true);
+          } else {
+            setLoadError("As questões estão sendo geradas pela IA. Aguarde um momento e tente novamente.");
+            setPhase("error");
           }
         }
       } catch (e) {
         console.error("Failed to load quiz", e);
+        setLoadError("Erro ao conectar com o servidor. Verifique sua conexão e tente novamente.");
+        setPhase("error");
+      } finally {
+        clearTimeout(timeout);
       }
     }
     init();
@@ -287,6 +303,7 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
         >
           <div className="text-6xl mb-4">{isCustomQuiz ? "📚" : info.emoji}</div>
           <p className="text-xl font-bold text-gray-700">Carregando {isCustomQuiz ? "Quiz Personalizado" : info.name}...</p>
+          <p className="text-sm text-gray-500 mt-2">Gerando questões com IA, aguarde...</p>
           <div className="mt-4 flex justify-center gap-2">
             {[0, 1, 2].map((i) => (
               <motion.div
@@ -299,6 +316,33 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
             ))}
           </div>
         </motion.div>
+      </div>
+    );
+  }
+
+  if (phase === "error") {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: `linear-gradient(135deg, ${info.color}22, #fff)` }}>
+        <div className="text-center max-w-sm">
+          <div className="text-6xl mb-4">😕</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Ops! Algo deu errado</h2>
+          <p className="text-gray-600 mb-6">{loadError ?? "Não foi possível carregar as questões."}</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={onBack}
+              className="px-5 py-2 rounded-xl bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition"
+            >
+              Voltar ao Mapa
+            </button>
+            <button
+              onClick={() => { setPhase("loading"); setLoadError(null); }}
+              className="px-5 py-2 rounded-xl text-white font-semibold hover:opacity-90 transition"
+              style={{ background: info.color }}
+            >
+              Tentar Novamente
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -349,9 +393,9 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
                       stroke={info.color}
                       strokeWidth="10"
                       strokeLinecap="round"
-                      strokeDasharray={`${2 * Math.PI * 50}`}
-                      initial={{ strokeDashoffset: 2 * Math.PI * 50 }}
-                      animate={{ strokeDashoffset: 2 * Math.PI * 50 * (1 - percentage / 100) }}
+                      strokeDasharray={314.16}
+                      initial={{ strokeDashoffset: 314.16 }}
+                      animate={{ strokeDashoffset: 314.16 * (1 - (percentage ?? 0) / 100) }}
                       transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
                     />
                   </svg>

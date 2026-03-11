@@ -1,0 +1,30 @@
+{
+  "query": "SELECT discipline, COUNT(*) as total FROM questions GROUP BY discipline;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pL4Gu6JunY4xFh8.b00df5c164b7 --database WycQQtzkjHVgMKwLmLHJRf --execute SELECT discipline, COUNT(*) as total FROM questions GROUP BY discipline;",
+  "rows": [
+    {
+      "discipline": "ciencias",
+      "total": "10"
+    },
+    {
+      "discipline": "matematica",
+      "total": "10"
+    },
+    {
+      "discipline": "historia",
+      "total": "10"
+    },
+    {
+      "discipline": "portugues",
+      "total": "10"
+    },
+    {
+      "discipline": "geografia",
+      "total": "10"
+    }
+  ],
+  "messages": [],
+  "stdout": "discipline\ttotal\nciencias\t10\nmatematica\t10\nhistoria\t10\nportugues\t10\ngeografia\t10\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}
