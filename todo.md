@@ -418,3 +418,14 @@
 - [x] Testar fluxo completo de onboarding
 - [x] Testar navegação entre telas
 - [x] Testar quiz com imagens
+
+
+## Modo História - Progressão por Disciplinas
+
+- [x] Criar tabela `storyProgress` para rastrear progresso do aluno por disciplina
+- [ ] Implementar sequência aleatória de 8 disciplinas
+- [ ] Gerar 12 perguntas por disciplina (4 fáceis + 4 médias + 4 difíceis)
+- [ ] Total de 96 perguntas no Modo História
+- [ ] Integrar série do aluno no gerador de perguntas
+- [ ] Criar UI de progresso visual (barra de progresso das disciplinas)
+- [ ] Testar fluxo completo: passar por todas as 8 disciplinas

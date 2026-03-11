@@ -9,6 +9,7 @@ import {
   json,
   float,
 } from "drizzle-orm/mysql-core";
+import { sql } from "drizzle-orm";
 
 // ─── Users (auth) ────────────────────────────────────────────────────────────
 export const users = mysqlTable("users", {
@@ -368,6 +369,23 @@ export const playerMissions = mysqlTable("player_missions", {
 
 export type PlayerMission = typeof playerMissions.$inferSelect;
 export type InsertPlayerMission = typeof playerMissions.$inferInsert;
+
+// ─── Story Progress ────────────────────────────────────────────────────────────────────────────
+export const storyProgress = mysqlTable("story_progress", {
+  id: int("id").autoincrement().primaryKey(),
+  playerId: int("playerId").notNull(),
+  disciplineSequence: json("disciplineSequence").$type<string[]>().notNull(), // Array aleatório de 8 disciplinas
+  currentDisciplineIndex: int("currentDisciplineIndex").default(0).notNull(), // Índice na sequência (0-7)
+  currentDifficulty: mysqlEnum("currentDifficulty", ["easy", "medium", "hard"]).default("easy").notNull(), // Dificuldade atual
+  questionsAnswered: int("questionsAnswered").default(0).notNull(), // Quantas perguntas respondidas na disciplina atual (0-12)
+  completedDisciplines: json("completedDisciplines").$type<string[]>().default(sql`json_array()`).notNull(), // Array de disciplinas completadas
+  totalScore: int("totalScore").default(0).notNull(), // Pontuação total do Modo História
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+});
+
+export type StoryProgress = typeof storyProgress.$inferSelect;
+export type InsertStoryProgress = typeof storyProgress.$inferInsert;
 
 // ─── Push Subscriptions ──────────────────────────────────────────────────────────────────────────
 export const pushSubscriptions = mysqlTable("push_subscriptions", {
