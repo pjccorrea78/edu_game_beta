@@ -16,6 +16,7 @@ type Question = {
   optionD: string;
   correctOption: string;
   explanation?: string | null;
+  imageUrl?: string | null;
   discipline?: string;
   difficulty?: string;
 };
@@ -664,6 +665,22 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
               </div>
               <p className="text-lg font-bold text-gray-800 leading-relaxed">{currentQ.questionText}</p>
             </div>
+
+            {/* Imagem da pergunta */}
+            {currentQ.imageUrl && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="w-full max-w-sm mx-auto mb-6 rounded-lg overflow-hidden shadow-lg"
+              >
+                <img
+                  src={currentQ.imageUrl}
+                  alt="Imagem da pergunta"
+                  className="w-full h-auto object-cover"
+                  onError={(e) => (e.currentTarget.style.display = 'none')}
+                />
+              </motion.div>
+            )}
 
             {/* Options */}
             <div className="grid grid-cols-1 gap-3">

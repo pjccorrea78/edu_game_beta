@@ -600,7 +600,8 @@ Retorne APENAS um JSON válido com este formato exato:
       "optionC": "Opção C",
       "optionD": "Opção D",
       "correctOption": "A",
-      "explanation": "Explicação breve da resposta correta"
+      "explanation": "Explicação breve da resposta correta",
+      "imageUrl": "https://images.unsplash.com/photo-xxxxx?w=400&h=300&fit=crop"
     }
   ]
 }
@@ -637,8 +638,9 @@ Regras:
                         optionD: { type: "string" },
                         correctOption: { type: "string", enum: ["A", "B", "C", "D"] },
                         explanation: { type: "string" },
+                        imageUrl: { type: "string" },
                       },
-                      required: ["questionText", "optionA", "optionB", "optionC", "optionD", "correctOption", "explanation"],
+                      required: ["questionText", "optionA", "optionB", "optionC", "optionD", "correctOption", "explanation", "imageUrl"],
                       additionalProperties: false,
                     },
                   },

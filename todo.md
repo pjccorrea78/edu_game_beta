@@ -399,3 +399,13 @@
 - [x] Sincronizar avatar do mapa com personalização (cores, gênero, cabelo)
 - [x] Corrigir rotação do avatar para andar para frente
 - [x] Adicionar cabelo ao avatar 3D
+
+
+## Imagens nas Questões
+
+- [x] Modificar schema: adicionar campo imageUrl (text, nullable) na tabela questions
+- [x] Migration SQL aplicada
+- [x] Atualizar prompt LLM para gerar URLs de imagens via Unsplash/Pexels API
+- [x] Integrar imagens no QuizScreen (exibir acima da pergunta)
+- [x] Adicionar fallback quando imageUrl estiver vazio
+- [x] Testar com diferentes disciplinas

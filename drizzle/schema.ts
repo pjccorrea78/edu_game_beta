@@ -82,6 +82,7 @@ export const questions = mysqlTable("questions", {
   optionD: text("optionD").notNull(),
   correctOption: mysqlEnum("correctOption", ["A", "B", "C", "D"]).notNull(),
   explanation: text("explanation"),
+  imageUrl: varchar("imageUrl", { length: 1024 }),
   isAiGenerated: boolean("isAiGenerated").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
