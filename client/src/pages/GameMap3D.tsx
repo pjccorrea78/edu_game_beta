@@ -22,7 +22,7 @@ interface GameMap3DProps {
   onBuildingClick: (buildingId: string) => void;
   onOpenShop: () => void;
   onOpenProgress: () => void;
-  onOpenStudy?: () => void;
+
   onOpenSchool?: () => void;
   onOpenTeacher?: () => void;
   onOpenAchievements?: () => void;
@@ -219,7 +219,7 @@ function createCity(scene: THREE.Scene, colliders: THREE.Box3[]) {
 }
 
 // ─── Avatar humanóide ─────────────────────────────────────────────────────────
-function createHumanAvatar(skinColor: number, shirtColor: number, pantsColor: number) {
+function createHumanAvatar(skinColor: number, shirtColor: number, pantsColor: number, gender?: string, hairStyle?: string) {
   const group = new THREE.Group();
   const skinMat = new THREE.MeshLambertMaterial({ color: skinColor });
   const shirtMat = new THREE.MeshLambertMaterial({ color: shirtColor });
@@ -232,6 +232,13 @@ function createHumanAvatar(skinColor: number, shirtColor: number, pantsColor: nu
   head.position.y = 1.65;
   head.castShadow = true;
   group.add(head);
+
+  // Cabelo simples
+  const hairColor = 0x3B2F2F;
+  const hairMat = new THREE.MeshLambertMaterial({ color: hairColor });
+  const hair = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.35, 0.75), hairMat);
+  hair.position.set(0, 1.8, 0);
+  group.add(hair);
 
   // Olhos
   const eyeGeo = new THREE.BoxGeometry(0.12, 0.12, 0.05);
@@ -301,7 +308,7 @@ export default function GameMap3D({
   onBuildingClick,
   onOpenShop,
   onOpenProgress,
-  onOpenStudy,
+
   onOpenSchool,
   onOpenTeacher,
   onOpenAchievements,
@@ -404,7 +411,7 @@ export default function GameMap3D({
     const skinColor = playerAvatar?.skinColor ?? 0xFDBA74;
     const shirtColor = playerAvatar?.shirtColor ?? 0x6366F1;
     const pantsColor = playerAvatar?.pantsColor ?? 0x1E40AF;
-    const avatar = createHumanAvatar(skinColor, shirtColor, pantsColor);
+    const avatar = createHumanAvatar(skinColor, shirtColor, pantsColor, playerAvatar?.gender, playerAvatar?.hairStyle);
     avatar.group.position.copy(playerPosRef.current);
     scene.add(avatar.group);
     avatarRef.current = avatar;
@@ -449,7 +456,7 @@ export default function GameMap3D({
       const isMoving = moveX !== 0 || moveZ !== 0;
 
       if (isMoving) {
-        const angle = Math.atan2(moveX, moveZ) + Math.PI;
+        const angle = Math.atan2(moveX, moveZ);
         playerRotRef.current = angle;
 
         const newX = playerPosRef.current.x + moveX * SPEED;
@@ -629,7 +636,7 @@ export default function GameMap3D({
               {[
                 { label: "🛒 Loja",              fn: () => { onOpenShop(); setShowMenu(false); } },
                 { label: "📊 Progresso",          fn: () => { onOpenProgress(); setShowMenu(false); } },
-                { label: "📚 Meu Material",       fn: () => { onOpenStudy?.(); setShowMenu(false); } },
+
                 { label: "🏫 Minha Escola",       fn: () => { onOpenSchool?.(); setShowMenu(false); } },
                 { label: "👩‍🏫 Painel do Professor", fn: () => { onOpenTeacher?.(); setShowMenu(false); } },
                 { label: "🏆 Conquistas",         fn: () => { onOpenAchievements?.(); setShowMenu(false); } },

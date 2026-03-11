@@ -164,7 +164,7 @@ function GameRouter() {
               }}
               onOpenShop={() => setScreen("shop")}
               onOpenProgress={() => setScreen("progress")}
-              onOpenStudy={() => setScreen("study")}
+
               onOpenSchool={() => setScreen("school")}
               onOpenTeacher={() => setScreen("teacher")}
               onOpenAchievements={() => setScreen("achievements")}

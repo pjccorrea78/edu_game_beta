@@ -30,7 +30,7 @@ export type InsertUser = typeof users.$inferInsert;
 export const players = mysqlTable("players", {
   id: int("id").autoincrement().primaryKey(),
   sessionId: varchar("sessionId", { length: 128 }).notNull().unique(),
-  nickname: varchar("nickname", { length: 64 }).default("Jogador").notNull(),
+  nickname: varchar("nickname", { length: 64 }).default("Jogador").notNull().unique(),
   schoolName: varchar("schoolName", { length: 128 }),
   totalPoints: int("totalPoints").default(0).notNull(),
   guardianEmail: varchar("guardianEmail", { length: 320 }),

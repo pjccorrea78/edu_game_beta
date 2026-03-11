@@ -377,3 +377,25 @@
 - [x] Avatar: seleção de gênero com cabelos, roupas e acessórios masculinos e femininos
 - [x] Avatar masculino: cabelos curto/topete/moicano, roupas camiseta/camisa/moletom
 - [x] Avatar feminino: cabelos comprido/trança/coque, roupas vestido/blusa/saia
+
+## 5 Correções Críticas (Mar 2026)
+
+- [ ] Remover "Meu Material" do menu principal (mover para dentro da escola)
+- [ ] Limpar base de jogadores (DELETE * FROM players)
+- [ ] Adicionar validação: nickname deve ser único na tabela players
+- [ ] Corrigir Modo História: timeout de geração de perguntas muito curto
+- [ ] Sincronizar avatar do mapa com personalização (cores, gênero, cabelo, direção)
+- [ ] Avatar no mapa não deve andar de costas (virar para frente ao se mover)
+- [ ] Adicionar imagens às questões (campo imageUrl no schema questions)
+- [ ] LLM: gerar URL de imagem relevante para cada questão
+
+
+## 5 Correções Críticas (Mar 2026) - CONCLUÍDAS
+
+- [x] Remover "Meu Material" do menu principal
+- [x] Limpar base de jogadores
+- [x] Adicionar validação de nickname único
+- [x] Corrigir Modo História (gerar perguntas via LLM com procedure missions.generateQuiz)
+- [x] Sincronizar avatar do mapa com personalização (cores, gênero, cabelo)
+- [x] Corrigir rotação do avatar para andar para frente
+- [x] Adicionar cabelo ao avatar 3D
