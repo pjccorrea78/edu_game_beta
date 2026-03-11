@@ -1,0 +1,1 @@
+ALTER TABLE `players` DROP INDEX `players_nickname_unique`;

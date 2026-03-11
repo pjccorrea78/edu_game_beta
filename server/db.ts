@@ -104,7 +104,12 @@ export async function getOrCreatePlayer(sessionId: string) {
     .where(eq(players.sessionId, sessionId))
     .limit(1);
   if (existing.length > 0) return existing[0];
-  await db.insert(players).values({ sessionId, nickname: "Jogador", totalPoints: 0 });
+  
+  // Gerar nickname único automaticamente
+  const uniqueId = Math.random().toString(36).substring(2, 9).toUpperCase();
+  const uniqueNickname = `Jogador_${uniqueId}`;
+  
+  await db.insert(players).values({ sessionId, nickname: uniqueNickname, totalPoints: 0 });
   const created = await db
     .select()
     .from(players)

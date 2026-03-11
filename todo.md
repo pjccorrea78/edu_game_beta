@@ -409,3 +409,12 @@
 - [x] Integrar imagens no QuizScreen (exibir acima da pergunta)
 - [x] Adicionar fallback quando imageUrl estiver vazio
 - [x] Testar com diferentes disciplinas
+
+
+## Bugs Encontrados em Testes
+
+- [x] Erro na tela de escolher avatar no Welcome (nickname único)
+- [x] Verificar logs do console para identificar o erro específico
+- [x] Testar fluxo completo de onboarding
+- [x] Testar navegação entre telas
+- [x] Testar quiz com imagens
