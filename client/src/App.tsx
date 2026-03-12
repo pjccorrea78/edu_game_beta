@@ -343,10 +343,6 @@ function GameRouter() {
           >
             <StoryMode
               onBack={() => setScreen("map")}
-              onStartQuiz={(discipline) => {
-                setActiveDiscipline(discipline as Discipline);
-                setScreen("quiz");
-              }}
             />
           </motion.div>
         )}

@@ -71,6 +71,10 @@ import {
   saveParentReport,
   getPlayerWeeklyStats,
   getLastParentReport,
+  getOrCreateStoryProgress,
+  getStoryProgress,
+  updateStoryProgress,
+  completeStoryProgress,
 } from "./db";
 import { players, equipmentItems } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -1475,6 +1479,153 @@ Retorne SOMENTE um JSON válido neste formato:
           }
         }
         return { newlyUnlocked };
+      }),
+    // ─── Dynamic Story Mode ───────────────────────────────────────────────────────────────────────
+    getProgress: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        let progress = await getStoryProgress(player.id);
+        if (!progress) {
+          progress = await getOrCreateStoryProgress(player.id);
+        }
+        return progress;
+      }),
+    generateNextMission: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        let progress = await getStoryProgress(player.id);
+        if (!progress) {
+          progress = await getOrCreateStoryProgress(player.id);
+        }
+        if (!progress) throw new Error("Failed to create story progress");
+        
+        // Check if all disciplines are completed
+        if (progress.currentDisciplineIndex >= progress.disciplineSequence.length) {
+          await completeStoryProgress(player.id);
+          return { completed: true, message: "Parabéns! Você completou o Modo História!" };
+        }
+        
+        // Get current discipline
+        const currentDiscipline = progress.disciplineSequence[progress.currentDisciplineIndex] as Discipline;
+        
+        // Generate 12 questions (4 easy + 4 medium + 4 hard) for this discipline
+        const difficulties: Array<"easy" | "medium" | "hard"> = [
+          "easy", "easy", "easy", "easy",
+          "medium", "medium", "medium", "medium",
+          "hard", "hard", "hard", "hard",
+        ];
+        
+        const questions: any[] = [];
+        for (const difficulty of difficulties) {
+          // Try to get question from database
+          const dbQuestions = await getQuestionsByDiscipline(currentDiscipline, 1, difficulty);
+          if (dbQuestions.length > 0) {
+            const randomQuestion = dbQuestions[Math.floor(Math.random() * dbQuestions.length)];
+            questions.push(randomQuestion);
+          } else {
+            // Generate via LLM if not in database
+            const gradeContext = player.grade ? `${player.grade}º ano` : "Ensino Fundamental";
+            const response = await invokeLLM({
+              messages: [
+                {
+                  role: "system",
+                  content: `Você é um professor de ${currentDiscipline.replace("_", " ")} criando uma pergunta de múltipla escolha para alunos do ${gradeContext}. Dificuldade: ${difficulty}. Crie uma pergunta educativa e apropriada para a idade.`,
+                },
+                {
+                  role: "user",
+                  content: `Gere uma pergunta de múltipla escolha em JSON com os campos: questionText (string), optionA (string), optionB (string), optionC (string), optionD (string), correctOption ("A"|"B"|"C"|"D"), explanation (string), imageUrl (string com URL de imagem relevante). Responda APENAS com JSON válido, sem markdown.`,
+                },
+              ],
+              response_format: {
+                type: "json_schema",
+                json_schema: {
+                  name: "quiz_question",
+                  strict: true,
+                  schema: {
+                    type: "object",
+                    properties: {
+                      questionText: { type: "string" },
+                      optionA: { type: "string" },
+                      optionB: { type: "string" },
+                      optionC: { type: "string" },
+                      optionD: { type: "string" },
+                      correctOption: { type: "string", enum: ["A", "B", "C", "D"] },
+                      explanation: { type: "string" },
+                      imageUrl: { type: "string" },
+                    },
+                    required: ["questionText", "optionA", "optionB", "optionC", "optionD", "correctOption", "explanation", "imageUrl"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+            });
+            
+            try {
+              const content = response.choices[0]?.message?.content;
+              if (typeof content === "string") {
+                const parsed = JSON.parse(content);
+                questions.push(parsed);
+              }
+            } catch (e) {
+              console.error("Failed to parse LLM response", e);
+            }
+          }
+        }
+        
+        return {
+          completed: false,
+          missionIndex: progress.currentDisciplineIndex,
+          discipline: currentDiscipline,
+          totalDisciplines: progress.disciplineSequence.length,
+          questions: questions.slice(0, 12),
+          completedDisciplines: progress.completedDisciplines.length,
+        };
+      }),
+    submitMissionAnswers: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        answers: z.array(z.object({ questionIndex: z.number(), selectedOption: z.string() })),
+        score: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        let progress = await getStoryProgress(player.id);
+        if (!progress) throw new Error("Story progress not found");
+        
+        // Update player points
+        const newTotalPoints = player.totalPoints + input.score;
+        await updatePlayerPoints(player.id, input.score);
+        
+        // Mark current discipline as completed
+        const completedDisciplines = [...progress.completedDisciplines, progress.disciplineSequence[progress.currentDisciplineIndex]];
+        const nextIndex = progress.currentDisciplineIndex + 1;
+        
+        // Update progress
+        await updateStoryProgress(player.id, {
+          currentDisciplineIndex: nextIndex,
+          completedDisciplines,
+          totalScore: progress.totalScore + input.score,
+          questionsAnswered: 0,
+          currentDifficulty: "easy",
+        });
+        
+        // Check if all disciplines completed
+        const isComplete = nextIndex >= progress.disciplineSequence.length;
+        if (isComplete) {
+          await completeStoryProgress(player.id);
+        }
+        
+        return {
+          success: true,
+          score: input.score,
+          totalPoints: newTotalPoints,
+          nextDisciplineIndex: nextIndex,
+          isComplete,
+          completedCount: completedDisciplines.length,
+          totalDisciplines: progress.disciplineSequence.length,
+        };
       }),
   }),
 

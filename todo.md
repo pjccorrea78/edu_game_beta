@@ -420,12 +420,13 @@
 - [x] Testar quiz com imagens
 
 
-## Modo História - Progressão por Disciplinas
+## Modo História - Progressão por Disciplinas (Dinâmico)
 
 - [x] Criar tabela `storyProgress` para rastrear progresso do aluno por disciplina
-- [ ] Implementar sequência aleatória de 8 disciplinas
-- [ ] Gerar 12 perguntas por disciplina (4 fáceis + 4 médias + 4 difíceis)
-- [ ] Total de 96 perguntas no Modo História
-- [ ] Integrar série do aluno no gerador de perguntas
-- [ ] Criar UI de progresso visual (barra de progresso das disciplinas)
-- [ ] Testar fluxo completo: passar por todas as 8 disciplinas
+- [x] Atualizar schema: adicionar campos para rastrear missões (currentMissionIndex, completedMissions)
+- [x] Implementar procedure missions.generateNextMission — gera 12 perguntas para próxima disciplina
+- [x] Implementar procedure missions.submitMissionAnswers — valida respostas e avança para próxima missão
+- [x] Atualizar UI StoryMode para exibir 1 missão por vez (sequencial)
+- [x] Integrar série do aluno no gerador de perguntas
+- [x] Criar UI de progresso visual (barra mostrando X/8 disciplinas completadas)
+- [x] Testar fluxo completo: passar por todas as 8 disciplinas sequencialmente

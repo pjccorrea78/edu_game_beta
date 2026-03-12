@@ -32,6 +32,7 @@ import {
   type InsertChallengeDuelResult,
   storyMissions,
   playerMissions,
+  storyProgress,
   pushSubscriptions,
   parentReports,
   avatarShares,
@@ -717,4 +718,67 @@ export async function updateParentEmail(playerId: number, email: string) {
   const db = await getDb();
   if (!db) return;
   await db.update(players).set({ parentEmail: email }).where(eq(players.id, playerId));
+}
+
+// ─── Story Progress (Dynamic Missions) ────────────────────────────────────────────────────────────
+export async function getOrCreateStoryProgress(playerId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  // Check if player already has story progress
+  const existing = await db.select().from(storyProgress).where(eq(storyProgress.playerId, playerId)).limit(1);
+  if (existing.length > 0) return existing[0];
+  
+  // Create new story progress with random discipline sequence
+  const disciplines: Discipline[] = [
+    "matematica",
+    "portugues",
+    "geografia",
+    "historia",
+    "ciencias",
+    "educacao_fisica",
+    "arte",
+    "ensino_religioso",
+  ];
+  
+  // Shuffle disciplines array
+  const shuffled = [...disciplines].sort(() => Math.random() - 0.5);
+  
+  const result = await db.insert(storyProgress).values({
+    playerId,
+    disciplineSequence: shuffled,
+    currentDisciplineIndex: 0,
+    currentDifficulty: "easy",
+    questionsAnswered: 0,
+    completedDisciplines: [],
+    totalScore: 0,
+  });
+  
+  const newProgress = await db.select().from(storyProgress).where(eq(storyProgress.playerId, playerId)).limit(1);
+  return newProgress[0] ?? null;
+}
+
+export async function getStoryProgress(playerId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(storyProgress).where(eq(storyProgress.playerId, playerId)).limit(1);
+  return result[0] ?? null;
+}
+
+export async function updateStoryProgress(playerId: number, updates: {
+  currentDisciplineIndex?: number;
+  currentDifficulty?: "easy" | "medium" | "hard";
+  questionsAnswered?: number;
+  completedDisciplines?: string[];
+  totalScore?: number;
+}) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(storyProgress).set(updates).where(eq(storyProgress.playerId, playerId));
+}
+
+export async function completeStoryProgress(playerId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(storyProgress).set({ completedAt: new Date() }).where(eq(storyProgress.playerId, playerId));
 }
