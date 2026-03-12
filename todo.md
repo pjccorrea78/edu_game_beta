@@ -190,6 +190,10 @@
 - [x] Integrar LessonVideo ao BuildingInterior3D
 - [x] Escrever e passar 5 testes de geração de aulas
 - [x] Testar fluxo completo no navegador
+- [x] Corrigir infinite loop no LessonVideo (useEffect dependencies)
+- [x] Adicionar retry logic com exponential backoff para rate limit
+- [x] Implementar delays entre requisições de imagem (2s)
+- [x] Todos os 27 testes passando
 
 ## Modo História com Missões
 

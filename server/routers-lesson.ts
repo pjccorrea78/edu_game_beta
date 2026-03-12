@@ -72,25 +72,41 @@ Format as JSON with fields: title, points (array of {duration, text, topic})`,
         return { error: "Failed to generate lesson script" };
       }
 
-      // Generate images for each point
+      // Generate images for each point with retry logic and delays
       const images: Array<{ topic: string; url: string }> = [];
-      for (const point of scriptData.points || []) {
-        try {
-          const imageResponse = await generateImage({
-            prompt: `Educational illustration for ${discipline}: ${point.topic}. Simple, colorful, appropriate for grade ${grade} students.`,
-          });
-          images.push({
-            topic: point.topic,
-            url: imageResponse.url || "",
-          });
-        } catch (e) {
-          // Fallback: use placeholder
-          images.push({
-            topic: point.topic,
-            url: "",
-          });
-          console.error("Failed to generate image for", point.topic, e);
+      for (let idx = 0; idx < (scriptData.points || []).length; idx++) {
+        const point = scriptData.points[idx];
+        
+        // Add delay between requests to avoid rate limits (2s per image)
+        if (idx > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         }
+
+        let imageUrl = "";
+        const maxRetries = 2;
+        
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+          try {
+            const imageResponse = await generateImage({
+              prompt: `Educational illustration for ${discipline}: ${point.topic}. Simple, colorful, appropriate for grade ${grade} students.`,
+            });
+            imageUrl = imageResponse.url || "";
+            break; // Success, exit retry loop
+          } catch (e) {
+            console.error(`Failed to generate image for ${point.topic} (attempt ${attempt + 1}/${maxRetries}):`, e);
+            
+            if (attempt < maxRetries - 1) {
+              // Exponential backoff: 2s, 4s, etc.
+              const backoffDelay = Math.pow(2, attempt + 1) * 1000;
+              await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+            }
+          }
+        }
+        
+        images.push({
+          topic: point.topic,
+          url: imageUrl,
+        });
       }
 
       return {

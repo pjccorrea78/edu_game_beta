@@ -41,12 +41,17 @@ export default function LessonVideo({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fetchedRef = useRef(false);
 
-  // Fetch lesson data
+  // Fetch lesson data - only once
   const generateLessonMutation = trpc.lesson.generateLessonVideo.useMutation();
 
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    let isMounted = true;
+
     const fetchLesson = async () => {
       try {
         setIsLoading(true);
@@ -55,6 +60,8 @@ export default function LessonVideo({
           grade,
         });
 
+        if (!isMounted) return;
+
         if ("error" in result) {
           setError(result.error || "Erro desconhecido");
           return;
@@ -62,48 +69,53 @@ export default function LessonVideo({
 
         setLessonData(result.lesson);
       } catch (err) {
-        setError("Falha ao gerar aula. Tente novamente.");
-        console.error(err);
+        if (isMounted) {
+          setError("Falha ao gerar aula. Tente novamente.");
+          console.error(err);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchLesson();
-  }, [discipline, grade, generateLessonMutation]);
 
-  // Timer logic
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Timer logic - increment elapsed time
   useEffect(() => {
     if (!isPlaying || !lessonData) return;
 
     intervalRef.current = setInterval(() => {
-      setElapsedTime((prev) => {
-        const newTime = prev + 1;
-
-        // Check if current point is complete
-        if (currentPointIndex < lessonData.points.length) {
-          const currentPoint = lessonData.points[currentPointIndex];
-          if (newTime >= currentPoint.duration) {
-            // Move to next point
-            if (currentPointIndex < lessonData.points.length - 1) {
-              setCurrentPointIndex((prev) => prev + 1);
-              return 0;
-            } else {
-              // Lesson complete
-              setIsPlaying(false);
-              return newTime;
-            }
-          }
-        }
-
-        return newTime;
-      });
+      setElapsedTime((prev) => prev + 1);
     }, 1000);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isPlaying, lessonData, currentPointIndex]);
+  }, [isPlaying, lessonData]);
+
+  // Check if current point is complete and advance
+  useEffect(() => {
+    if (!lessonData || !isPlaying) return;
+
+    const currentPoint = lessonData.points[currentPointIndex];
+    if (!currentPoint) return;
+
+    if (elapsedTime >= currentPoint.duration) {
+      if (currentPointIndex < lessonData.points.length - 1) {
+        setCurrentPointIndex((prev) => prev + 1);
+        setElapsedTime(0);
+      } else {
+        setIsPlaying(false);
+      }
+    }
+  }, [elapsedTime, currentPointIndex, lessonData, isPlaying]);
 
   // Speak current point text
   useEffect(() => {
@@ -126,7 +138,7 @@ export default function LessonVideo({
     return () => {
       window.speechSynthesis?.cancel();
     };
-  }, [currentPointIndex, lessonData, isPlaying, isMuted]);
+  }, [currentPointIndex, isPlaying, isMuted]);
 
   if (isLoading) {
     return (
