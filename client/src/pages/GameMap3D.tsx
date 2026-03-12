@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Menu, X, Zap, Trophy, BookOpen, Palette, Heart, Users, Settings, Bell } from "lucide-react";
+import BuildingInterior3D from "@/components/BuildingInterior3D";
 
 // ─── Disciplinas / Prédios ────────────────────────────────────────────────────
 const BUILDINGS = [
@@ -43,67 +44,70 @@ function createBuilding(
   const group = new THREE.Group();
   const [bx, , bz] = bld.position;
 
-  // Base do prédio
-  const bodyGeo = new THREE.BoxGeometry(8, 10, 8);
+  // Base do prédio (redimensionado: 60% do tamanho original)
+  const bodyGeo = new THREE.BoxGeometry(5.5, 6, 5.5);
   const bodyMat = new THREE.MeshLambertMaterial({ color: bld.color });
   const body = new THREE.Mesh(bodyGeo, bodyMat);
-  body.position.set(0, 5, 0);
+  body.position.set(0, 3, 0);
   body.castShadow = true;
   body.receiveShadow = true;
   group.add(body);
 
-  // Telhado
-  const roofGeo = new THREE.ConeGeometry(6.2, 3, 4);
+  // Telhado (proporcionalmente menor)
+  const roofGeo = new THREE.ConeGeometry(4, 2, 4);
   const roofMat = new THREE.MeshLambertMaterial({ color: bld.accent });
   const roof = new THREE.Mesh(roofGeo, roofMat);
-  roof.position.set(0, 11.5, 0);
+  roof.position.set(0, 7, 0);
   roof.rotation.y = Math.PI / 4;
   roof.castShadow = true;
   group.add(roof);
 
   // Janelas (frente)
-  const winMat = new THREE.MeshLambertMaterial({ color: 0xBAE6FD, emissive: 0x7DD3FC, emissiveIntensity: 0.3 });
-  const winGeo = new THREE.BoxGeometry(1.4, 1.4, 0.15);
-  const winPositions = [[-2, 7], [0, 7], [2, 7], [-2, 4], [0, 4], [2, 4]];
+  const winMat = new THREE.MeshLambertMaterial({ color: 0xBAE6FD, emissive: 0x7DD3FC, emissiveIntensity: 0.5 });
+  const winGeo = new THREE.BoxGeometry(1, 1, 0.15);
+  const winPositions = [[-1.2, 4.5], [0, 4.5], [1.2, 4.5], [-1.2, 2.5], [0, 2.5], [1.2, 2.5]];
   winPositions.forEach(([wx, wy]) => {
     const win = new THREE.Mesh(winGeo, winMat);
-    win.position.set(wx, wy, 4.08);
+    win.position.set(wx, wy, 2.8);
+    win.castShadow = true;
     group.add(win);
   });
 
-  // Porta
-  const doorGeo = new THREE.BoxGeometry(2, 3, 0.15);
+  // Porta (melhor proporcao)
+  const doorGeo = new THREE.BoxGeometry(1.2, 2, 0.15);
   const doorMat = new THREE.MeshLambertMaterial({ color: bld.accent });
   const door = new THREE.Mesh(doorGeo, doorMat);
-  door.position.set(0, 1.5, 4.08);
+  door.position.set(0, 1, 2.8);
+  door.castShadow = true;
   group.add(door);
 
   // Placa com nome
   const canvas = document.createElement("canvas");
-  canvas.width = 256; canvas.height = 64;
+  canvas.width = 512; canvas.height = 128;
   const ctx = canvas.getContext("2d")!;
+  const colorHex = "#" + bld.color.toString(16).padStart(6, "0");
+  ctx.fillStyle = colorHex;
+  ctx.fillRect(0, 0, 512, 128);
   ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, 256, 64);
-  ctx.fillStyle = "#1e293b";
-  ctx.font = "bold 22px Arial";
+  ctx.font = "bold 48px Arial";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(bld.name, 128, 32);
+  ctx.fillText(bld.name, 256, 64);
   const tex = new THREE.CanvasTexture(canvas);
-  const signGeo = new THREE.PlaneGeometry(4, 1);
+  const signGeo = new THREE.PlaneGeometry(5, 1.2);
   const signMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
   const sign = new THREE.Mesh(signGeo, signMat);
-  sign.position.set(0, 9.2, 4.1);
+  sign.position.set(0, 6.5, 2.85);
   group.add(sign);
 
   group.position.set(bx, 0, bz);
   scene.add(group);
 
-  // Colisão
+  // Colisao (ajustada para novo tamanho)
   const box = new THREE.Box3();
   box.setFromCenterAndSize(
-    new THREE.Vector3(bx, 5, bz),
-    new THREE.Vector3(9, 12, 9)
+    new THREE.Vector3(bx, 3, bz),
+    new THREE.Vector3(6.5, 7, 6.5)
   );
   colliders.push(box);
 
@@ -334,6 +338,7 @@ export default function GameMap3D({
   const [showMenu, setShowMenu] = useState(false);
   const [nearbyBuilding, setNearbyBuilding] = useState<string | null>(null);
   const [isEntering, setIsEntering] = useState(false);
+  const [selectedBuilding, setSelectedBuilding] = useState<typeof BUILDINGS[0] | null>(null);
   // Joystick usa refs para evitar closure stale no loop Three.js
   const [joystickActive, setJoystickActive] = useState(false);
   const [joystickVisual, setJoystickVisual] = useState({ x: 0, y: 0 });
@@ -595,14 +600,26 @@ export default function GameMap3D({
   // ── Entrar no prédio ────────────────────────────────────────────────────────
   const enterBuilding = useCallback(() => {
     if (!nearbyBuilding) return;
-    setIsEntering(true);
-    setTimeout(() => {
-      onBuildingClick(nearbyBuilding);
-      setIsEntering(false);
-    }, 800);
-  }, [nearbyBuilding, onBuildingClick]);
+    const building = BUILDINGS.find(b => b.id === nearbyBuilding);
+    if (building) {
+      setSelectedBuilding(building);
+    }
+  }, [nearbyBuilding]);
 
   const nearbyBuildingData = BUILDINGS.find(b => b.id === nearbyBuilding);
+
+  const handleBuildingInteriorClose = () => {
+    setSelectedBuilding(null);
+  };
+
+  const handleBuildingInteriorOption = (option: "lesson" | "quiz") => {
+    if (selectedBuilding) {
+      setSelectedBuilding(null);
+      if (option === "quiz") {
+        onBuildingClick(selectedBuilding.id);
+      }
+    }
+  };
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-sky-400" ref={containerRef}>
@@ -711,7 +728,7 @@ export default function GameMap3D({
         />
       </div>
 
-      {/* Botão Entrar (mobile, quando próximo) */}
+      {/* Botao Entrar (mobile, quando proximo) */}
       {nearbyBuildingData && !isEntering && (
         <div className="absolute bottom-24 right-6 z-20 pointer-events-auto md:hidden">
           <Button
@@ -721,6 +738,18 @@ export default function GameMap3D({
             Entrar
           </Button>
         </div>
+      )}
+
+      {/* Interior 3D do predio */}
+      {selectedBuilding && (
+        <BuildingInterior3D
+          buildingId={selectedBuilding.id}
+          buildingName={selectedBuilding.name}
+          discipline={selectedBuilding.discipline}
+          color={selectedBuilding.color}
+          onClose={handleBuildingInteriorClose}
+          onSelectOption={handleBuildingInteriorOption}
+        />
       )}
     </div>
   );

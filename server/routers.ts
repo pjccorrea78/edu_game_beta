@@ -80,6 +80,7 @@ import { players, equipmentItems } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import type { Discipline, AvatarConfig } from "../drizzle/schema";
 import { notifyOwner } from "./_core/notification";
+import { lessonRouter } from "./routers-lesson";
 import webpush from "web-push";
 
 // Initialize VAPID
@@ -112,6 +113,7 @@ const avatarConfigSchema = z.object({
 
 export const appRouter = router({
   system: systemRouter,
+  lesson: lessonRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

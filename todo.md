@@ -179,6 +179,18 @@
 - [ ] Tela de opt-in para notificações no mapa
 - [ ] Agendamento automático do lembrete diário
 
+## Redesenho do Mapa 3D com Prédios Proporcionais e Aulas
+
+- [x] Redimensionar prédios para proporções menores (60% do tamanho original)
+- [x] Melhorar letreiros dos prédios (5x maior, com cores das disciplinas)
+- [x] Implementar interior 3D dos prédios com professor 3D humanóide
+- [x] Criar fluxo de opções: "Assistir Aula" ou "Responder Perguntas"
+- [x] Implementar geração de aula 2 min via LLM (script + imagens)
+- [x] Criar componente LessonVideo com reprodução e narração (Web Speech API)
+- [x] Integrar LessonVideo ao BuildingInterior3D
+- [x] Escrever e passar 5 testes de geração de aulas
+- [x] Testar fluxo completo no navegador
+
 ## Modo História com Missões
 
 - [ ] Schema: tabela story_missions e player_missions
@@ -430,3 +442,18 @@
 - [x] Integrar série do aluno no gerador de perguntas
 - [x] Criar UI de progresso visual (barra mostrando X/8 disciplinas completadas)
 - [x] Testar fluxo completo: passar por todas as 8 disciplinas sequencialmente
+
+
+## Redesenho do Mapa 3D com Melhor Usabilidade
+
+- [ ] Redimensionar prédios para proporções menores (mais baixos e proporcionais ao personagem)
+- [ ] Aumentar resolução/qualidade visual do mapa
+- [ ] Adicionar letreiros 3D com nomes das matérias no topo de cada prédio
+- [ ] Implementar interior 3D dos prédios (sala de aula)
+- [ ] Criar professor 3D animado (personagem humanóide) dentro de cada prédio
+- [ ] Implementar câmera que entra no prédio ao pressionar E
+- [ ] Criar tela 2D modal com opções: "Assistir Aula" ou "Responder Perguntas"
+- [ ] Implementar geração de vídeo de aula (2 minutos) via LLM + vídeo generation
+- [ ] Reproduzir vídeo da aula em tela 2D dentro do prédio
+- [ ] Integrar fluxo: aula → volta ao mapa OU quiz → volta ao mapa
+- [ ] Testar navegação completa: mapa → prédio → aula/quiz → mapa
