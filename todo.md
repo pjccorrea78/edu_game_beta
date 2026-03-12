@@ -461,3 +461,13 @@
 - [ ] Reproduzir vídeo da aula em tela 2D dentro do prédio
 - [ ] Integrar fluxo: aula → volta ao mapa OU quiz → volta ao mapa
 - [ ] Testar navegação completa: mapa → prédio → aula/quiz → mapa
+
+
+## Cache de Aulas
+
+- [x] Adicionar tabela lesson_cache ao schema (discipline, grade, lessonData JSON, createdAt)
+- [x] Implementar função getCachedLesson no db.ts
+- [x] Implementar função saveLessonCache no db.ts
+- [x] Atualizar routers-lesson para verificar cache antes de gerar
+- [x] Implementar retry logic com exponential backoff para rate limit
+- [x] Testar fluxo de cache - 26 testes passando

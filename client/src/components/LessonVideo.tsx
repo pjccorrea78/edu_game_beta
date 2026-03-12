@@ -67,7 +67,7 @@ export default function LessonVideo({
           return;
         }
 
-        setLessonData(result.lesson);
+        setLessonData(result.lesson as LessonData);
       } catch (err) {
         if (isMounted) {
           setError("Falha ao gerar aula. Tente novamente.");

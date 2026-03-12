@@ -120,6 +120,13 @@
       "when": 1773272518217,
       "tag": "0016_curious_blizzard",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1773282549905,
+      "tag": "0017_high_stone_men",
+      "breakpoints": true
     }
   ]
 }

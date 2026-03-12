@@ -2,6 +2,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
+import { getCachedLesson, saveLessonCache } from "./db";
 
 export const lessonRouter = router({
   generateLessonVideo: publicProcedure
@@ -11,6 +12,16 @@ export const lessonRouter = router({
     }))
     .mutation(async ({ input }) => {
       const { discipline, grade = 6 } = input;
+
+      // Check if lesson is cached
+      const cached = await getCachedLesson(discipline as any, grade);
+      if (cached) {
+        console.log(`Using cached lesson for ${discipline} grade ${grade}`);
+        return {
+          success: true,
+          lesson: cached.lessonData,
+        };
+      }
 
       // Generate lesson script via LLM
       const scriptResponse = await invokeLLM({
@@ -109,16 +120,21 @@ Format as JSON with fields: title, points (array of {duration, text, topic})`,
         });
       }
 
+      const lessonData = {
+        title: scriptData.title,
+        discipline,
+        grade,
+        duration: 120, // 2 minutes in seconds
+        points: scriptData.points,
+        images,
+      };
+
+      // Save to cache for future use
+      await saveLessonCache(discipline as any, grade, lessonData);
+
       return {
         success: true,
-        lesson: {
-          title: scriptData.title,
-          discipline,
-          grade,
-          duration: 120, // 2 minutes in seconds
-          points: scriptData.points,
-          images,
-        },
+        lesson: lessonData,
       };
     }),
 });

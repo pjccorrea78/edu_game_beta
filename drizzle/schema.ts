@@ -417,3 +417,16 @@ export const parentReports = mysqlTable("parent_reports", {
 
 export type ParentReport = typeof parentReports.$inferSelect;
 export type InsertParentReport = typeof parentReports.$inferInsert;
+
+
+// ─── Lesson Cache ──────────────────────────────────────────────────────────────
+export const lessonCache = mysqlTable("lesson_cache", {
+  id: int("id").autoincrement().primaryKey(),
+  discipline: mysqlEnum("discipline", ["matematica", "portugues", "geografia", "historia", "ciencias", "educacao_fisica", "arte", "ensino_religioso"]).notNull(),
+  grade: int("grade").notNull(),
+  lessonData: json("lessonData").notNull(), // Armazena o objeto LessonData completo
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type LessonCache = typeof lessonCache.$inferSelect;
+export type InsertLessonCache = typeof lessonCache.$inferInsert;

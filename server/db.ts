@@ -36,10 +36,13 @@ import {
   pushSubscriptions,
   parentReports,
   avatarShares,
+  lessonCache,
   type InsertPlayerMission,
   type InsertPushSubscription,
   type InsertParentReport,
   type InsertAvatarShare,
+  type LessonCache,
+  type InsertLessonCache,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -781,4 +784,42 @@ export async function completeStoryProgress(playerId: number) {
   const db = await getDb();
   if (!db) return;
   await db.update(storyProgress).set({ completedAt: new Date() }).where(eq(storyProgress.playerId, playerId));
+}
+
+
+// ─── Lesson Cache ────────────────────────────────────────────────────────────────
+export async function getCachedLesson(discipline: Discipline, grade: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(lessonCache)
+    .where(and(eq(lessonCache.discipline, discipline), eq(lessonCache.grade, grade)))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+export async function saveLessonCache(discipline: Discipline, grade: number, lessonData: any) {
+  const db = await getDb();
+  if (!db) return;
+  
+  // Check if cache already exists
+  const existing = await getCachedLesson(discipline, grade);
+  if (existing) {
+    // Update existing cache
+    await db.update(lessonCache).set({ lessonData }).where(
+      and(eq(lessonCache.discipline, discipline), eq(lessonCache.grade, grade))
+    );
+  } else {
+    // Insert new cache
+    await db.insert(lessonCache).values({
+      discipline,
+      grade,
+      lessonData,
+    });
+  }
+}
+
+export async function getAllLessonCaches() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(lessonCache);
 }
