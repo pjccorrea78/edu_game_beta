@@ -53,11 +53,6 @@ function GameRouter() {
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [customQuizMaterial, setCustomQuizMaterial] = useState<{ id: number; title: string } | null>(null);
 
-  // If not authenticated, show login
-  if (!authLoading && !authUser) {
-    return <Login />;
-  }
-
   useEffect(() => {
     if (!isLoading && player) {
       const onboarded = localStorage.getItem("edugame_onboarded");
@@ -70,6 +65,11 @@ function GameRouter() {
       }
     }
   }, [player, isLoading]);
+
+  // If not authenticated, show login
+  if (!authLoading && !authUser) {
+    return <Login />;
+  }
 
   if (isLoading) {
     return (
