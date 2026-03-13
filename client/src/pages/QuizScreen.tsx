@@ -723,10 +723,13 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
                     disabled={answered}
                   >
                     <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0"
+                      className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 font-sans"
                       style={{
                         background: showResult && isCorrect ? "#4ECDC4" : showResult && isSelected ? "#FF6B6B" : info.color,
                         color: "white",
+                        fontFamily: "Arial, sans-serif",
+                        fontWeight: "900",
+                        letterSpacing: "0",
                       }}
                     >
                       {opt}

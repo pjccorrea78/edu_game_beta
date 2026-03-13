@@ -480,3 +480,10 @@
 - [x] Redirecionar usuários não autenticados para tela de login
 - [x] Após login, redirecionar para Home do jogo
 - [x] Testar fluxo completo: login → jogo → logout
+
+
+## Bugs e Melhorias
+
+- [x] Corrigir bug: letras aparecendo como "UM" no quiz de perguntas (fonte Arial + fontWeight 900)
+- [x] Adicionar botão de logout no mapa (menu flutuante - "🚪 Sair do Jogo")
+- [x] Testar fluxo de logout: volta para tela de login

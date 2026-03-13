@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Menu, X, Zap, Trophy, BookOpen, Palette, Heart, Users, Settings, Bell } from "lucide-react";
+import { Menu, X, Zap, Trophy, BookOpen, Palette, Heart, Users, Settings, Bell, LogOut } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import BuildingInterior3D from "@/components/BuildingInterior3D";
 
 // ─── Disciplinas / Prédios ────────────────────────────────────────────────────
@@ -323,6 +324,7 @@ export default function GameMap3D({
   onOpenNotifications,
   onOpenAvatarAI,
 }: GameMap3DProps) {
+  const { logout } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -662,6 +664,7 @@ export default function GameMap3D({
                 { label: "⚔️ Duelos",             fn: () => { onOpenDuel?.(); setShowMenu(false); } },
                 { label: "📖 Modo História",      fn: () => { onOpenStory?.(); setShowMenu(false); } },
                 { label: "🔔 Notificações",       fn: () => { onOpenNotifications?.(); setShowMenu(false); } },
+                { label: "🚪 Sair do Jogo",       fn: () => { logout(); setShowMenu(false); } },
               ].map(({ label, fn }) => (
                 <button
                   key={label}
