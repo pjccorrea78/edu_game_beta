@@ -4,8 +4,10 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { GameProvider, useGame } from "./contexts/GameContext";
+import { useAuth } from "./_core/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import Login from "./pages/Login";
 import Welcome from "./pages/Welcome";
 import GameMap from "./pages/GameMap";
 import GameMap3D from "./pages/GameMap3D";
@@ -45,10 +47,16 @@ type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "cienc
 
 function GameRouter() {
   const { player, isLoading } = useGame();
+  const { user: authUser, loading: authLoading } = useAuth();
   const [screen, setScreen] = useState<Screen>("welcome");
   const [activeDiscipline, setActiveDiscipline] = useState<Discipline | null>(null);
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [customQuizMaterial, setCustomQuizMaterial] = useState<{ id: number; title: string } | null>(null);
+
+  // If not authenticated, show login
+  if (!authLoading && !authUser) {
+    return <Login />;
+  }
 
   useEffect(() => {
     if (!isLoading && player) {

@@ -471,3 +471,12 @@
 - [x] Atualizar routers-lesson para verificar cache antes de gerar
 - [x] Implementar retry logic com exponential backoff para rate limit
 - [x] Testar fluxo de cache - 26 testes passando
+
+
+## Fluxo de Autenticação e Login
+
+- [x] Corrigir App.tsx para exigir login antes de acessar jogo
+- [x] Criar página Login.tsx com botão "Entrar com Manus"
+- [x] Redirecionar usuários não autenticados para tela de login
+- [x] Após login, redirecionar para Home do jogo
+- [x] Testar fluxo completo: login → jogo → logout
