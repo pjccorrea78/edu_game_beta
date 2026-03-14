@@ -63,15 +63,15 @@ function GameRouter() {
 
   useEffect(() => {
     if (!isLoading && player) {
-      // Se jogador não tem nickname, mostrar Welcome
-      if (!player.nickname || player.nickname === "Jogador") {
-        setHasOnboarded(false);
-        setScreen("welcome");
-      } else {
-        // Se tem nickname, ir direto para o mapa
+      const onboarded = localStorage.getItem("edugame_onboarded");
+      // Se já fez onboarding antes, ir direto para mapa
+      if (onboarded === "true" && player.nickname && player.nickname !== "Jogador") {
         setHasOnboarded(true);
         setScreen("map");
-        localStorage.setItem("edugame_onboarded", "true");
+      } else {
+        // Se é novo ou não completou onboarding, mostrar Welcome
+        setHasOnboarded(false);
+        setScreen("welcome");
       }
     }
   }, [player, isLoading]);
