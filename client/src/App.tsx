@@ -63,13 +63,15 @@ function GameRouter() {
 
   useEffect(() => {
     if (!isLoading && player) {
-      const onboarded = localStorage.getItem("edugame_onboarded");
-      if (onboarded === "true" && player.nickname && player.nickname !== "Jogador") {
+      // Se jogador não tem nickname, mostrar Welcome
+      if (!player.nickname || player.nickname === "Jogador") {
+        setHasOnboarded(false);
+        setScreen("welcome");
+      } else {
+        // Se tem nickname, ir direto para o mapa
         setHasOnboarded(true);
         setScreen("map");
-      } else if (player.nickname && player.nickname !== "Jogador") {
-        setHasOnboarded(true);
-        setScreen("map");
+        localStorage.setItem("edugame_onboarded", "true");
       }
     }
   }, [player, isLoading]);
@@ -79,7 +81,8 @@ function GameRouter() {
     return <Login />;
   }
 
-  if (isLoading) {
+  // If authenticated but loading player data, show loading
+  if (authUser && isLoading) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
@@ -105,6 +108,8 @@ function GameRouter() {
       </div>
     );
   }
+
+
 
   const handleWelcomeComplete = () => {
     localStorage.setItem("edugame_onboarded", "true");
