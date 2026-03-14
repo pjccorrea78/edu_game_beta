@@ -487,3 +487,4 @@
 - [x] Corrigir bug: letras aparecendo como "UM" no quiz de perguntas (fonte Arial + fontWeight 900)
 - [x] Adicionar botão de logout no mapa (menu flutuante - "🚪 Sair do Jogo")
 - [x] Testar fluxo de logout: volta para tela de login
+- [x] Corrigir loop de login: adicionar refetch() após OAuth callback

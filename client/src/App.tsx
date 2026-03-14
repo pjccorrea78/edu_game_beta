@@ -47,11 +47,19 @@ type Discipline = "matematica" | "portugues" | "geografia" | "historia" | "cienc
 
 function GameRouter() {
   const { player, isLoading } = useGame();
-  const { user: authUser, loading: authLoading } = useAuth();
+  const { user: authUser, loading: authLoading, refresh: refreshAuth } = useAuth();
   const [screen, setScreen] = useState<Screen>("welcome");
   const [activeDiscipline, setActiveDiscipline] = useState<Discipline | null>(null);
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [customQuizMaterial, setCustomQuizMaterial] = useState<{ id: number; title: string } | null>(null);
+
+  // Refetch auth after OAuth callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("from_webdev") === "1") {
+      refreshAuth();
+    }
+  }, [refreshAuth]);
 
   useEffect(() => {
     if (!isLoading && player) {
