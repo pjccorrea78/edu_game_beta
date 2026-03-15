@@ -18,7 +18,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["student", "teacher", "admin"]).default("student").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -430,3 +430,58 @@ export const lessonCache = mysqlTable("lesson_cache", {
 
 export type LessonCache = typeof lessonCache.$inferSelect;
 export type InsertLessonCache = typeof lessonCache.$inferInsert;
+
+
+// ─── Schools (Escolas) ──────────────────────────────────────────────────────────
+export const schools = mysqlTable("schools", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 256 }).notNull(),
+  location: varchar("location", { length: 256 }),
+  teacherId: int("teacherId").notNull(), // FK para users.id
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type School = typeof schools.$inferSelect;
+export type InsertSchool = typeof schools.$inferInsert;
+
+// ─── Classes (Turmas) ──────────────────────────────────────────────────────────
+export const classes = mysqlTable("classes", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),
+  grade: mysqlEnum("grade", ["1", "2", "3", "4", "5", "6", "7", "8", "9"]).notNull(),
+  schoolId: int("schoolId").notNull(), // FK para schools.id
+  teacherId: int("teacherId").notNull(), // FK para users.id
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Class = typeof classes.$inferSelect;
+export type InsertClass = typeof classes.$inferInsert;
+
+// ─── Class Students (Alunos da Turma) ──────────────────────────────────────────
+export const classStudents = mysqlTable("class_students", {
+  id: int("id").autoincrement().primaryKey(),
+  classId: int("classId").notNull(), // FK para classes.id
+  playerId: int("playerId").notNull(), // FK para players.id
+  joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+});
+
+export type ClassStudent = typeof classStudents.$inferSelect;
+export type InsertClassStudent = typeof classStudents.$inferInsert;
+
+// ─── Study Materials (Materiais de Estudo) ──────────────────────────────────────
+export const studyMaterialsV2 = mysqlTable("study_materials_v2", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 256 }).notNull(),
+  fileType: mysqlEnum("fileType", ["pdf", "doc", "xlsx", "txt"]).notNull(),
+  fileUrl: varchar("fileUrl", { length: 1024 }).notNull(), // URL no S3
+  classId: int("classId").notNull(), // FK para classes.id
+  creatorId: int("creatorId").notNull(), // FK para users.id (teacher)
+  discipline: mysqlEnum("discipline", ["matematica", "portugues", "geografia", "historia", "ciencias", "educacao_fisica", "arte", "ensino_religioso"]),
+  description: text("description"),
+  uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
+});
+
+export type StudyMaterialV2 = typeof studyMaterialsV2.$inferSelect;
+export type InsertStudyMaterialV2 = typeof studyMaterialsV2.$inferInsert;

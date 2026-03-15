@@ -127,6 +127,13 @@
       "when": 1773282549905,
       "tag": "0017_high_stone_men",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1773582447704,
+      "tag": "0018_violet_miss_america",
+      "breakpoints": true
     }
   ]
 }

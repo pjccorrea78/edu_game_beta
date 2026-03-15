@@ -488,3 +488,57 @@
 - [x] Adicionar botão de logout no mapa (menu flutuante - "🚪 Sair do Jogo")
 - [x] Testar fluxo de logout: volta para tela de login
 - [x] Corrigir loop de login: adicionar refetch() após OAuth callback
+
+
+## Reorganização: Painel do Professor e Gerenciamento de Materiais
+
+### Schema e Banco de Dados
+- [ ] Criar tabela `schools` (nome, localização, criador_id)
+- [ ] Criar tabela `classes` (nome, série, school_id, teacher_id)
+- [ ] Criar tabela `class_students` (class_id, student_id, data_entrada)
+- [ ] Criar tabela `study_materials_v2` (nome, tipo, arquivo_url, class_id, criador_id, data_upload)
+- [ ] Adicionar campo `school_id` e `class_id` à tabela `players`
+- [ ] Expandir campo `role`: "student", "teacher", "admin"
+- [ ] Gerar migrations SQL
+
+### Procedures Backend
+- [ ] schools.create - Criar nova escola
+- [ ] schools.list - Listar escolas do professor
+- [ ] classes.create - Criar turma em uma escola
+- [ ] classes.list - Listar turmas da escola
+- [ ] classes.addStudent - Vincular aluno à turma
+- [ ] classes.removeStudent - Remover aluno da turma
+- [ ] materials.upload - Upload de arquivo (PDF, DOC, XLSX, TXT)
+- [ ] materials.list - Listar materiais da turma
+- [ ] materials.delete - Deletar material
+
+### Painel do Professor (UI)
+- [ ] Criar página TeacherDashboard.tsx
+- [ ] Seção de gerenciamento de escolas
+- [ ] Seção de gerenciamento de turmas
+- [ ] Seção de gerenciamento de alunos
+- [ ] Seção de upload de materiais
+- [ ] Visualizar estatísticas de turma
+
+### Integração com Jogo do Aluno
+- [ ] Aluno vê apenas materiais de sua turma
+- [ ] Materiais aparecem no menu do jogo
+- [ ] Visualizador de material (PDF, DOC, XLSX, TXT)
+
+### Testes
+- [ ] Testes de CRUD de escolas
+- [ ] Testes de CRUD de turmas
+- [ ] Testes de upload de materiais
+- [ ] Testes de vinculação de alunos
+
+
+## Reorganização: Painel do Professor (Em Desenvolvimento)
+
+- [x] Criar schema: tabelas schools, classes, class_students, study_materials_v2
+- [x] Executar migrations SQL para criar tabelas no banco
+- [ ] Implementar routers-teacher.ts com procedures CRUD
+- [ ] Criar página TeacherDashboard.tsx (/teacher)
+- [ ] Implementar upload de materiais (PDF, DOC, XLSX, TXT)
+- [ ] Integrar materiais no jogo do aluno
+- [ ] Criar role "teacher" automático na primeira vez que faz login
+- [ ] Testar fluxo completo: professor cria escola → turma → vincula alunos → envia materiais
