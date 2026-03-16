@@ -36,6 +36,9 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
+      // Limpar localStorage para resetar onboarding
+      localStorage.removeItem("edugame_onboarded");
+      localStorage.removeItem("manus-runtime-user-info");
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }

@@ -542,3 +542,5 @@
 - [ ] Integrar materiais no jogo do aluno
 - [ ] Criar role "teacher" automático na primeira vez que faz login
 - [ ] Testar fluxo completo: professor cria escola → turma → vincula alunos → envia materiais
+
+- [x] Corrigir loop de login/logout: limpar localStorage ao fazer logout

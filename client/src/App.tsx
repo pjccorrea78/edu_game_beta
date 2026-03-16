@@ -64,7 +64,7 @@ function GameRouter() {
   useEffect(() => {
     if (!isLoading && player) {
       const onboarded = localStorage.getItem("edugame_onboarded");
-      // Se já fez onboarding antes, ir direto para mapa
+      // Se já fez onboarding antes E tem nickname customizado, ir direto para mapa
       if (onboarded === "true" && player.nickname && player.nickname !== "Jogador") {
         setHasOnboarded(true);
         setScreen("map");
