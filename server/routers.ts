@@ -75,6 +75,22 @@ import {
   getStoryProgress,
   updateStoryProgress,
   completeStoryProgress,
+  createSchool,
+  getSchoolsByOwner,
+  getSchoolById,
+  updateSchool,
+  deleteSchool,
+  createSchoolClass,
+  getClassesBySchool,
+  getClassesByOwner,
+  getSchoolClassById,
+  getSchoolClassByInviteCode,
+  updateSchoolClass,
+  deleteSchoolClass,
+  enrollStudent,
+  getStudentsByClass,
+  removeStudentFromClass,
+  getClassStudentStats,
 } from "./db";
 import { players, equipmentItems } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -1268,7 +1284,7 @@ Retorne SOMENTE um JSON válido neste formato:
 
   // ─── Teacher Panel ────────────────────────────────────────────────────────────
   teacher: router({
-    // Get all student progress for a material (via class code)
+    // ── Legacy: Get turma progress by class code ──
     getTurmaProgress: publicProcedure
       .input(z.object({ code: z.string() }))
       .query(async ({ input }) => {
@@ -1277,6 +1293,143 @@ Retorne SOMENTE um JSON válido neste formato:
         const sessions = await getTurmaProgress(codeEntry.materialId);
         const stats = await getTurmaStats(codeEntry.materialId);
         return { sessions, stats, materialTitle: codeEntry.title, code: codeEntry.code };
+      }),
+
+    // ── Schools CRUD ──
+    createSchool: publicProcedure
+      .input(z.object({ sessionId: z.string(), name: z.string().min(2).max(256), city: z.string().max(128).optional(), state: z.string().max(64).optional() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const school = await createSchool({ ownerId: player.id, name: input.name, city: input.city ?? null, state: input.state ?? null });
+        return school;
+      }),
+
+    listSchools: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        return getSchoolsByOwner(player.id);
+      }),
+
+    getSchool: publicProcedure
+      .input(z.object({ sessionId: z.string(), schoolId: z.number() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const school = await getSchoolById(input.schoolId);
+        if (!school || school.ownerId !== player.id) throw new Error("Escola não encontrada");
+        const classes = await getClassesBySchool(input.schoolId);
+        return { school, classes };
+      }),
+
+    updateSchool: publicProcedure
+      .input(z.object({ sessionId: z.string(), schoolId: z.number(), name: z.string().min(2).max(256).optional(), city: z.string().max(128).optional(), state: z.string().max(64).optional() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const school = await getSchoolById(input.schoolId);
+        if (!school || school.ownerId !== player.id) throw new Error("Escola não encontrada");
+        await updateSchool(input.schoolId, { name: input.name, city: input.city, state: input.state });
+        return { success: true };
+      }),
+
+    deleteSchool: publicProcedure
+      .input(z.object({ sessionId: z.string(), schoolId: z.number() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const school = await getSchoolById(input.schoolId);
+        if (!school || school.ownerId !== player.id) throw new Error("Escola não encontrada");
+        await deleteSchool(input.schoolId);
+        return { success: true };
+      }),
+
+    // ── Classes (Turmas) CRUD ──
+    createClass: publicProcedure
+      .input(z.object({ sessionId: z.string(), schoolId: z.number(), name: z.string().min(1).max(128), grade: z.enum(["1","2","3","4","5","6","7","8","9"]).optional(), year: z.number().optional() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const school = await getSchoolById(input.schoolId);
+        if (!school || school.ownerId !== player.id) throw new Error("Escola não encontrada");
+        const cls = await createSchoolClass({ schoolId: input.schoolId, ownerId: player.id, name: input.name, grade: input.grade, year: input.year });
+        return cls;
+      }),
+
+    getClass: publicProcedure
+      .input(z.object({ sessionId: z.string(), classId: z.number() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const cls = await getSchoolClassById(input.classId);
+        if (!cls || cls.ownerId !== player.id) throw new Error("Turma não encontrada");
+        const students = await getStudentsByClass(input.classId);
+        const stats = await getClassStudentStats(input.classId);
+        return { class: cls, students, stats };
+      }),
+
+    listClasses: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const classes = await getClassesByOwner(player.id);
+        // Enrich with student count
+        const enriched = await Promise.all(classes.map(async (cls) => {
+          const students = await getStudentsByClass(cls.id);
+          return { ...cls, studentCount: students.length };
+        }));
+        return enriched;
+      }),
+
+    updateClass: publicProcedure
+      .input(z.object({ sessionId: z.string(), classId: z.number(), name: z.string().min(1).max(128).optional(), grade: z.enum(["1","2","3","4","5","6","7","8","9"]).optional(), year: z.number().optional() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const cls = await getSchoolClassById(input.classId);
+        if (!cls || cls.ownerId !== player.id) throw new Error("Turma não encontrada");
+        await updateSchoolClass(input.classId, { name: input.name, grade: input.grade, year: input.year });
+        return { success: true };
+      }),
+
+    deleteClass: publicProcedure
+      .input(z.object({ sessionId: z.string(), classId: z.number() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const cls = await getSchoolClassById(input.classId);
+        if (!cls || cls.ownerId !== player.id) throw new Error("Turma não encontrada");
+        await deleteSchoolClass(input.classId);
+        return { success: true };
+      }),
+
+    // ── Students ──
+    enrollStudentByCode: publicProcedure
+      .input(z.object({ sessionId: z.string(), inviteCode: z.string().min(4).max(8) }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const cls = await getSchoolClassByInviteCode(input.inviteCode.toUpperCase());
+        if (!cls) throw new Error("Código de turma inválido");
+        const enrolled = await enrollStudent(cls.id, player.id);
+        return { success: true, className: cls.name, classId: cls.id };
+      }),
+
+    removeStudent: publicProcedure
+      .input(z.object({ sessionId: z.string(), classId: z.number(), playerId: z.number() }))
+      .mutation(async ({ input }) => {
+        const player = await getOrCreatePlayer(input.sessionId);
+        const cls = await getSchoolClassById(input.classId);
+        if (!cls || cls.ownerId !== player.id) throw new Error("Turma não encontrada");
+        await removeStudentFromClass(input.classId, input.playerId);
+        return { success: true };
+      }),
+
+    getStudentDetail: publicProcedure
+      .input(z.object({ sessionId: z.string(), playerId: z.number() }))
+      .query(async ({ input }) => {
+        const teacher = await getOrCreatePlayer(input.sessionId);
+        const history = await getPlayerQuizHistory(input.playerId);
+        const quizzesByDiscipline: Record<string, { count: number; totalCorrect: number; totalQuestions: number }> = {};
+        for (const s of history) {
+          if (!quizzesByDiscipline[s.discipline]) quizzesByDiscipline[s.discipline] = { count: 0, totalCorrect: 0, totalQuestions: 0 };
+          quizzesByDiscipline[s.discipline].count++;
+          quizzesByDiscipline[s.discipline].totalCorrect += s.correctAnswers ?? 0;
+          quizzesByDiscipline[s.discipline].totalQuestions += s.totalQuestions ?? 10;
+        }
+        return { totalQuizzes: history.length, quizzesByDiscipline, recentSessions: history.slice(0, 10) };
       }),
   }),
 

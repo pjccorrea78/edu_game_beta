@@ -43,6 +43,12 @@ import {
   type InsertAvatarShare,
   type LessonCache,
   type InsertLessonCache,
+  schools,
+  schoolClasses,
+  classStudents,
+  type InsertSchool,
+  type InsertSchoolClass,
+  type InsertClassStudent,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -831,4 +837,165 @@ export async function getAllLessonCaches() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(lessonCache);
+}
+
+// ─── Schools CRUD ────────────────────────────────────────────────────────────
+export async function createSchool(data: InsertSchool) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(schools).values(data);
+  const [created] = await db.select().from(schools)
+    .where(and(eq(schools.ownerId, data.ownerId), eq(schools.name, data.name)))
+    .orderBy(desc(schools.id)).limit(1);
+  return created;
+}
+
+export async function getSchoolsByOwner(ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(schools).where(eq(schools.ownerId, ownerId)).orderBy(desc(schools.createdAt));
+}
+
+export async function getSchoolById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [school] = await db.select().from(schools).where(eq(schools.id, id)).limit(1);
+  return school ?? null;
+}
+
+export async function updateSchool(id: number, data: { name?: string; city?: string; state?: string }) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(schools).set(data).where(eq(schools.id, id));
+}
+
+export async function deleteSchool(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  // Delete students from all classes of this school
+  const classes = await db.select({ id: schoolClasses.id }).from(schoolClasses).where(eq(schoolClasses.schoolId, id));
+  for (const cls of classes) {
+    await db.delete(classStudents).where(eq(classStudents.classId, cls.id));
+  }
+  await db.delete(schoolClasses).where(eq(schoolClasses.schoolId, id));
+  await db.delete(schools).where(eq(schools.id, id));
+}
+
+// ─── School Classes (Turmas) CRUD ────────────────────────────────────────────
+function generateInviteCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+export async function createSchoolClass(data: Omit<InsertSchoolClass, "inviteCode">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const inviteCode = generateInviteCode();
+  await db.insert(schoolClasses).values({ ...data, inviteCode });
+  const [created] = await db.select().from(schoolClasses)
+    .where(eq(schoolClasses.inviteCode, inviteCode)).limit(1);
+  return created;
+}
+
+export async function getClassesBySchool(schoolId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(schoolClasses).where(eq(schoolClasses.schoolId, schoolId)).orderBy(desc(schoolClasses.createdAt));
+}
+
+export async function getClassesByOwner(ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(schoolClasses).where(eq(schoolClasses.ownerId, ownerId)).orderBy(desc(schoolClasses.createdAt));
+}
+
+export async function getSchoolClassById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [cls] = await db.select().from(schoolClasses).where(eq(schoolClasses.id, id)).limit(1);
+  return cls ?? null;
+}
+
+export async function getSchoolClassByInviteCode(code: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const [cls] = await db.select().from(schoolClasses).where(eq(schoolClasses.inviteCode, code)).limit(1);
+  return cls ?? null;
+}
+
+export async function updateSchoolClass(id: number, data: { name?: string; grade?: "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"; year?: number }) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(schoolClasses).set(data).where(eq(schoolClasses.id, id));
+}
+
+export async function deleteSchoolClass(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(classStudents).where(eq(classStudents.classId, id));
+  await db.delete(schoolClasses).where(eq(schoolClasses.id, id));
+}
+
+// ─── Class Students CRUD ─────────────────────────────────────────────────────
+export async function enrollStudent(classId: number, playerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Check if already enrolled
+  const [existing] = await db.select().from(classStudents)
+    .where(and(eq(classStudents.classId, classId), eq(classStudents.playerId, playerId)))
+    .limit(1);
+  if (existing) return existing;
+  await db.insert(classStudents).values({ classId, playerId });
+  const [created] = await db.select().from(classStudents)
+    .where(and(eq(classStudents.classId, classId), eq(classStudents.playerId, playerId)))
+    .limit(1);
+  return created;
+}
+
+export async function getStudentsByClass(classId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const enrolled = await db.select({
+    id: classStudents.id,
+    classId: classStudents.classId,
+    playerId: classStudents.playerId,
+    enrolledAt: classStudents.enrolledAt,
+    nickname: players.nickname,
+    totalPoints: players.totalPoints,
+    avatarConfig: players.avatarConfig,
+    gender: players.gender,
+    age: players.age,
+    grade: players.grade,
+  })
+    .from(classStudents)
+    .innerJoin(players, eq(classStudents.playerId, players.id))
+    .where(eq(classStudents.classId, classId))
+    .orderBy(desc(players.totalPoints));
+  return enrolled;
+}
+
+export async function removeStudentFromClass(classId: number, playerId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(classStudents).where(
+    and(eq(classStudents.classId, classId), eq(classStudents.playerId, playerId))
+  );
+}
+
+export async function getClassStudentStats(classId: number) {
+  const db = await getDb();
+  if (!db) return { totalStudents: 0, avgPoints: 0, totalQuizzes: 0 };
+  const enrolled = await getStudentsByClass(classId);
+  if (enrolled.length === 0) return { totalStudents: 0, avgPoints: 0, totalQuizzes: 0 };
+  const playerIds = enrolled.map(e => e.playerId);
+  // Get quiz sessions for all students in class
+  let totalQuizzes = 0;
+  for (const pid of playerIds) {
+    const history = await db.select({ id: quizSessions.id }).from(quizSessions).where(eq(quizSessions.playerId, pid));
+    totalQuizzes += history.length;
+  }
+  const avgPoints = Math.round(enrolled.reduce((a, s) => a + s.totalPoints, 0) / enrolled.length);
+  return { totalStudents: enrolled.length, avgPoints, totalQuizzes };
 }
