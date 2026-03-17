@@ -473,6 +473,20 @@ export type ClassStudent = typeof classStudents.$inferSelect;
 export type InsertClassStudent = typeof classStudents.$inferInsert;
 
 
+// ─── Grades (Turmas por série) ──────────────────────────────────────────────
+export const grades = mysqlTable("grades", {
+  id: int("id").autoincrement().primaryKey(),
+  schoolId: int("schoolId").notNull(),
+  ownerId: int("ownerId").notNull(), // playerId do professor
+  gradeLevel: mysqlEnum("gradeLevel", ["1", "2", "3", "4", "5", "6", "7", "8", "9"]).notNull(), // ex: "5"
+  year: int("year"), // ex: 2026
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Grade = typeof grades.$inferSelect;
+export type InsertGrade = typeof grades.$inferInsert;
+
 // ─── Class Materials (Materiais de estudo da turma) ──────────────────────────
 export const classMaterials = mysqlTable("class_materials", {
   id: int("id").autoincrement().primaryKey(),

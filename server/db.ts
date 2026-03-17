@@ -47,9 +47,11 @@ import {
   schoolClasses,
   classStudents,
   classMaterials,
+  grades,
   type InsertSchool,
   type InsertSchoolClass,
   type InsertClassMaterial,
+  type InsertGrade,
   type InsertClassStudent,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -1070,4 +1072,50 @@ export async function addStudentManually(classId: number, playerId: number, adde
   });
   
   return { success: true };
+}
+
+
+// ─── Grades (Turmas por série) ────────────────────────────────────────────────
+export async function createGrade(data: InsertGrade) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(grades).values(data);
+  const [created] = await db.select().from(grades)
+    .where(and(eq(grades.schoolId, data.schoolId), eq(grades.gradeLevel, data.gradeLevel)))
+    .orderBy(desc(grades.createdAt))
+    .limit(1);
+  return created;
+}
+
+export async function getGradesBySchool(schoolId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(grades)
+    .where(eq(grades.schoolId, schoolId))
+    .orderBy(grades.gradeLevel);
+}
+
+export async function getGradeById(gradeId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.select().from(grades)
+    .where(eq(grades.id, gradeId))
+    .limit(1);
+  return result || null;
+}
+
+export async function deleteGrade(gradeId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(grades).where(eq(grades.id, gradeId));
+}
+
+export async function getClassesByGrade(gradeId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const grade = await getGradeById(gradeId);
+  if (!grade) return [];
+  return db.select().from(schoolClasses)
+    .where(and(eq(schoolClasses.grade, grade.gradeLevel)))
+    .orderBy(schoolClasses.name);
 }

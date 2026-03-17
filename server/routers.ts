@@ -96,6 +96,11 @@ import {
   createClassMaterial,
   getClassMaterials,
   deleteClassMaterial,
+  createGrade,
+  getGradesBySchool,
+  getGradeById,
+  deleteGrade,
+  getClassesByGrade,
 } from "./db";
 import { players, equipmentItems } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -1518,6 +1523,48 @@ Retorne SOMENTE um JSON válido neste formato:
       .mutation(async ({ input }) => {
         await deleteClassMaterial(input.materialId);
         return { success: true };
+      }),
+
+    // ─── Grades (Turmas por série) ─────────────────────────────────────────
+    createGrade: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        schoolId: z.number(),
+        gradeLevel: z.enum(["1", "2", "3", "4", "5", "6", "7", "8", "9"]),
+        year: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const teacher = await getOrCreatePlayer(input.sessionId);
+        const school = await getSchoolById(input.schoolId);
+        if (!school || school.ownerId !== teacher.id) throw new Error("Escola não encontrada");
+        return await createGrade({
+          schoolId: input.schoolId,
+          ownerId: teacher.id,
+          gradeLevel: input.gradeLevel,
+          year: input.year,
+        });
+      }),
+
+    getGradesBySchool: publicProcedure
+      .input(z.object({ sessionId: z.string(), schoolId: z.number() }))
+      .query(async ({ input }) => {
+        const teacher = await getOrCreatePlayer(input.sessionId);
+        const school = await getSchoolById(input.schoolId);
+        if (!school || school.ownerId !== teacher.id) throw new Error("Escola não encontrada");
+        return await getGradesBySchool(input.schoolId);
+      }),
+
+    deleteGrade: publicProcedure
+      .input(z.object({ sessionId: z.string(), gradeId: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteGrade(input.gradeId);
+        return { success: true };
+      }),
+
+    getClassesByGrade: publicProcedure
+      .input(z.object({ sessionId: z.string(), gradeId: z.number() }))
+      .query(async ({ input }) => {
+        return await getClassesByGrade(input.gradeId);
       }),
   }),
 
