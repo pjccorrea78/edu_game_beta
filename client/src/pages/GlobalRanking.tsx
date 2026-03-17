@@ -14,7 +14,10 @@ const RANK_BG = [
 
 export default function GlobalRanking({ onBack }: { onBack: () => void }) {
   const { sessionId } = useGame();
-  const { data, isLoading } = trpc.globalLeaderboard.getTop10.useQuery({ sessionId });
+  const { data, isLoading } = trpc.globalLeaderboard.getTop10.useQuery(
+    { sessionId },
+    { refetchInterval: 15000 }
+  );
 
   const top3 = data?.top10.slice(0, 3) ?? [];
   const rest = data?.top10.slice(3) ?? [];

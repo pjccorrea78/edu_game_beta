@@ -219,6 +219,17 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
     init();
   }, [retryCount]);
 
+  // Timer
+  useEffect(() => {
+    if (!timerActive || answered || phase !== "quiz") return;
+    if (timeLeft <= 0) {
+      handleAnswer(null); // Time's up = wrong
+      return;
+    }
+    const t = setTimeout(() => setTimeLeft((p) => p - 1), 1000);
+    return () => clearTimeout(t);
+  }, [timeLeft, timerActive, answered, phase, handleAnswer]);
+
   const handleAnswer = useCallback(
     async (option: string | null) => {
       if (answered || phase !== "quiz") return;
@@ -277,17 +288,6 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
     },
     [answered, phase, questions, currentIndex, score, correctCount, wrongCount, quizSessionId, lives]
   );
-
-  // Timer
-  useEffect(() => {
-    if (!timerActive || answered || phase !== "quiz") return;
-    if (timeLeft <= 0) {
-      handleAnswer(null); // Time's up = wrong
-      return;
-    }
-    const t = setTimeout(() => setTimeLeft((p) => p - 1), 1000);
-    return () => clearTimeout(t);
-  }, [timeLeft, timerActive, answered, phase, handleAnswer]);
 
   const handleFinish = async (finalScore: number, correct: number, wrong: number) => {
     setTimerActive(false);
