@@ -80,7 +80,7 @@ export default function DuelChallenge({ onBack }: { onBack: () => void }) {
   };
 
   const handleStartCreatedDuel = () => {
-    if (createMutation.data) {
+    if (createMutation.data?.duel) {
       setActiveDuelId(createMutation.data.duel.id);
       setActiveDuelDiscipline(selectedDiscipline);
       setView("playing");
