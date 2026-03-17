@@ -1422,14 +1422,41 @@ Retorne SOMENTE um JSON válido neste formato:
       .query(async ({ input }) => {
         const teacher = await getOrCreatePlayer(input.sessionId);
         const history = await getPlayerQuizHistory(input.playerId);
-        const quizzesByDiscipline: Record<string, { count: number; totalCorrect: number; totalQuestions: number }> = {};
+        
+        let totalCorrect = 0, totalWrong = 0, totalQuestions = 0;
+        const byDiscipline: Record<string, { count: number; correct: number; wrong: number; accuracy: number }> = {};
+        
         for (const s of history) {
-          if (!quizzesByDiscipline[s.discipline]) quizzesByDiscipline[s.discipline] = { count: 0, totalCorrect: 0, totalQuestions: 0 };
-          quizzesByDiscipline[s.discipline].count++;
-          quizzesByDiscipline[s.discipline].totalCorrect += s.correctAnswers ?? 0;
-          quizzesByDiscipline[s.discipline].totalQuestions += s.totalQuestions ?? 10;
+          totalCorrect += s.correctAnswers ?? 0;
+          totalWrong += (s.wrongAnswers ?? 0);
+          totalQuestions += s.totalQuestions ?? 10;
+          
+          if (!byDiscipline[s.discipline]) {
+            byDiscipline[s.discipline] = { count: 0, correct: 0, wrong: 0, accuracy: 0 };
+          }
+          byDiscipline[s.discipline].count++;
+          byDiscipline[s.discipline].correct += s.correctAnswers ?? 0;
+          byDiscipline[s.discipline].wrong += (s.wrongAnswers ?? 0);
         }
-        return { totalQuizzes: history.length, quizzesByDiscipline, recentSessions: history.slice(0, 10) };
+        
+        // Calculate accuracy per discipline
+        for (const d of Object.values(byDiscipline)) {
+          const total = d.correct + d.wrong;
+          d.accuracy = total > 0 ? Math.round((d.correct / total) * 100) : 0;
+        }
+        
+        const overallAccuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+        
+        return {
+          totalQuizzes: history.length,
+          totalQuestions,
+          totalCorrect,
+          totalWrong,
+          overallAccuracy,
+          byDiscipline,
+          wrongQuestions: [],
+          recentSessions: history.slice(0, 10)
+        };
       }),
   }),
 

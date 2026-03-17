@@ -925,10 +925,14 @@ export async function getSchoolClassByInviteCode(code: string) {
   return cls ?? null;
 }
 
-export async function updateSchoolClass(id: number, data: { name?: string; grade?: "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"; year?: number }) {
+export async function updateSchoolClass(id: number, data: { name?: string; grade?: string; year?: number }) {
   const db = await getDb();
   if (!db) return;
-  await db.update(schoolClasses).set(data).where(eq(schoolClasses.id, id));
+  const updateData: any = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.grade !== undefined) updateData.grade = data.grade as "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+  if (data.year !== undefined) updateData.year = data.year;
+  await db.update(schoolClasses).set(updateData).where(eq(schoolClasses.id, id));
 }
 
 export async function deleteSchoolClass(id: number) {

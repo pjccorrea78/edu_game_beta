@@ -1,0 +1,9 @@
+{
+  "query": "-- Add enrolledAt column if it doesn't exist\nALTER TABLE `class_students` ADD COLUMN `enrolledAt` timestamp NOT NULL DEFAULT (now());\n\n-- Add indexes if they don't exist\nCREATE INDEX IF NOT EXISTS `idx_class_students_class` ON `class_students` (`classId`);\nCREATE INDEX IF NOT EXISTS `idx_class_students_player` ON `class_students` (`playerId`);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pL4Gu6JunY4xFh8.b00df5c164b7 --database WycQQtzkjHVgMKwLmLHJRf --execute -- Add enrolledAt column if it doesn't exist\nALTER TABLE `class_students` ADD COLUMN `enrolledAt` timestamp NOT NULL DEFAULT (now());\n\n-- Add indexes if they don't exist\nCREATE INDEX IF NOT EXISTS `idx_class_students_class` ON `class_students` (`classId`);\nCREATE INDEX IF NOT EXISTS `idx_class_students_player` ON `class_students` (`playerId`);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 803
+}
