@@ -9,6 +9,9 @@ const disciplineColors: Record<string, string> = {
   geografia: "#45B7D1",
   historia: "#F7DC6F",
   ciencias: "#A8E6CF",
+  educacao_fisica: "#FF8C42",
+  arte: "#FF1493",
+  ensino_religioso: "#87CEEB",
 };
 
 const disciplineNames: Record<string, string> = {
@@ -17,6 +20,9 @@ const disciplineNames: Record<string, string> = {
   geografia: "Geografia",
   historia: "História",
   ciencias: "Ciências",
+  educacao_fisica: "Educação Física",
+  arte: "Arte",
+  ensino_religioso: "Ensino Religioso",
 };
 
 function getTimeUntilMidnight() {

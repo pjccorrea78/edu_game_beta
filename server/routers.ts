@@ -1246,7 +1246,7 @@ Retorne SOMENTE um JSON válido neste formato:
             case "collector": shouldUnlock = owned.length >= 5; break;
             case "all_disciplines": {
               const disciplines = new Set(history.map(s => s.discipline));
-              shouldUnlock = disciplines.size >= 5;
+              shouldUnlock = disciplines.size >= 8;
               break;
             }
             case "material_master": shouldUnlock = input.event === "material_upload"; break;
@@ -1289,9 +1289,9 @@ Retorne SOMENTE um JSON válido neste formato:
         let challenge = await getDailyChallengeByDate(today);
         if (!challenge) {
           // Generate via LLM
-          const disciplines: Array<'matematica'|'portugues'|'geografia'|'historia'|'ciencias'> = ['matematica','portugues','geografia','historia','ciencias'];
+          const disciplines: Array<'matematica'|'portugues'|'geografia'|'historia'|'ciencias'|'educacao_fisica'|'arte'|'ensino_religioso'> = ['matematica','portugues','geografia','historia','ciencias','educacao_fisica','arte','ensino_religioso'];
           const discipline = disciplines[Math.floor(Math.random() * disciplines.length)];
-          const disciplineNames: Record<string, string> = { matematica: 'Matemática', portugues: 'Português', geografia: 'Geografia', historia: 'História', ciencias: 'Ciências' };
+          const disciplineNames: Record<string, string> = { matematica: 'Matemática', portugues: 'Português', geografia: 'Geografia', historia: 'História', ciencias: 'Ciências', educacao_fisica: 'Educação Física', arte: 'Arte', ensino_religioso: 'Ensino Religioso' };
           const llmResponse = await invokeLLM({
             messages: [
               { role: 'system', content: 'Você é um professor criativo para crianças de 5 a 12 anos. Responda APENAS com JSON válido.' },
@@ -1319,7 +1319,7 @@ Retorne SOMENTE um JSON válido neste formato:
         if (existing) throw new Error('Você já respondeu o desafio de hoje!');
         const isCorrect = input.selectedOption === challenge.correctOption;
         const streak = await getPlayerDailyStreak(player.id);
-        const newStreak = isCorrect ? streak + 1 : 1;
+        const newStreak = isCorrect ? streak + 1 : 0;
         // Bonus: 2x base + streak bonus (max 5x)
         const streakBonus = Math.min(newStreak, 5);
         const basePoints = isCorrect ? 10 : 0;
@@ -1402,7 +1402,6 @@ Retorne SOMENTE um JSON válido neste formato:
           nickname: player.nickname,
         });
         const results = await getChallengeDuelResults(input.duelId);
-        const duel = await getChallengeDuelByCode(''); // We'll get by id
         // Check if both players submitted
         const duelData = (await getPlayerDuels(player.id)).find(d => d.id === input.duelId);
         if (duelData && results.length >= 2) {
@@ -1831,8 +1830,7 @@ Regras de interpretação:
       }))
       .mutation(async ({ input }) => {
         const player = await getOrCreatePlayer(input.sessionId);
-        const current = await getOrCreatePlayer(input.sessionId);
-        const currentAvatar = current.avatarConfig as AvatarConfig | null;
+        const currentAvatar = player.avatarConfig as AvatarConfig | null;
         await updatePlayerAvatar(player.id, {
           skinColor: input.skinColor,
           hairColor: input.hairColor,
@@ -1895,7 +1893,7 @@ const ACHIEVEMENTS_CATALOG = [
   { key: "points_1000", title: "Milionário do Conhecimento", description: "Acumule 1000 pontos", icon: "👑", category: "points" },
   { key: "first_item", title: "Fashionista", description: "Compre seu primeiro equipamento", icon: "🛍️", category: "shop" },
   { key: "collector", title: "Colecionador", description: "Tenha 5 equipamentos", icon: "🎒", category: "shop" },
-  { key: "all_disciplines", title: "Explorador Total", description: "Complete quizzes em todas as 5 disciplinas", icon: "🌍", category: "explore" },
+  { key: "all_disciplines", title: "Explorador Total", description: "Complete quizzes em todas as 8 disciplinas", icon: "🌍", category: "explore" },
   { key: "material_master", title: "Estudioso", description: "Envie seu primeiro material de estudo", icon: "📄", category: "explore" },
 ];
 

@@ -102,10 +102,10 @@ export default function StoryMode({ onBack }: StoryModeProps) {
     generateMissionMutation.mutate({ sessionId });
   };
 
-  const handleQuizComplete = (score: number, answers: Array<{ questionIndex: number; selectedOption: string }>) => {
+  const handleQuizComplete = (score: number, correctAnswers: number) => {
     submitAnswersMutation.mutate({
       sessionId,
-      answers,
+      answers: [],
       score,
     });
   };
@@ -123,12 +123,25 @@ export default function StoryMode({ onBack }: StoryModeProps) {
 
   // If quiz is active, show quiz screen
   if (isQuizActive && currentMission) {
+    // Map generated questions to QuizScreen format (add fake id if missing)
+    const mappedQuestions = currentMission.questions.map((q, i) => ({
+      id: (q as any).id ?? -(i + 1),
+      questionText: q.questionText,
+      optionA: q.optionA,
+      optionB: q.optionB,
+      optionC: q.optionC,
+      optionD: q.optionD,
+      correctOption: q.correctOption,
+      explanation: q.explanation,
+      imageUrl: q.imageUrl,
+    }));
     return (
       <QuizScreen
         discipline={currentMission.discipline as any}
+        preloadedQuestions={mappedQuestions}
         onFinish={(result) => {
           if (result) {
-            handleQuizComplete(result.score, []);
+            handleQuizComplete(result.score, result.correctAnswers);
           }
         }}
         onBack={() => {

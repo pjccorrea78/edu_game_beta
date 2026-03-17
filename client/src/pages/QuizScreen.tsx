@@ -25,6 +25,7 @@ type Props = {
   discipline: Discipline | null;
   customMaterialId?: number;
   customTitle?: string;
+  preloadedQuestions?: Question[];
   onBack: () => void;
   onFinish: (result?: QuizResult) => void;
 };
@@ -81,7 +82,7 @@ function Confetti() {
   );
 }
 
-export default function QuizScreen({ discipline, customMaterialId, customTitle, onBack, onFinish }: Props) {
+export default function QuizScreen({ discipline, customMaterialId, customTitle, preloadedQuestions, onBack, onFinish }: Props) {
   const { sessionId, player, refreshPlayer } = useGame();
   const isCustomQuiz = !!customMaterialId;
   const info = discipline ? DISCIPLINE_INFO[discipline] : {
@@ -111,6 +112,7 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
   const [adaptiveDifficulty, setAdaptiveDifficulty] = useState<"easy" | "medium" | "hard">("easy");
   const [difficultyReason, setDifficultyReason] = useState<string>("primeira_vez");
   const [showDifficultyBanner, setShowDifficultyBanner] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   const utils = trpc.useUtils();
   const getAdaptiveDifficultyQuery = trpc.quiz.getAdaptiveDifficulty.useQuery(
@@ -139,7 +141,12 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
       }, 30000);
 
       try {
-        if (isCustomQuiz && customMaterialId) {
+        // Use preloaded questions if provided (e.g. from StoryMode)
+        if (preloadedQuestions && preloadedQuestions.length > 0) {
+          setQuestions(preloadedQuestions.slice(0, 12));
+          setPhase("quiz");
+          setTimerActive(true);
+        } else if (isCustomQuiz && customMaterialId) {
           const result = await getCustomQuestionsQuery.refetch();
           if (result.data?.questions && result.data.questions.length > 0) {
             const qs = result.data.questions.map((q) => ({
@@ -210,7 +217,7 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
       }
     }
     init();
-  }, []);
+  }, [retryCount]);
 
   // Timer
   useEffect(() => {
@@ -221,7 +228,7 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
     }
     const t = setTimeout(() => setTimeLeft((p) => p - 1), 1000);
     return () => clearTimeout(t);
-  }, [timeLeft, timerActive, answered, phase]);
+  }, [timeLeft, timerActive, answered, phase, handleAnswer]);
 
   const handleAnswer = useCallback(
     async (option: string | null) => {
@@ -279,7 +286,7 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
         }
       }, 2000);
     },
-    [answered, phase, questions, currentIndex, score, correctCount, wrongCount, quizSessionId]
+    [answered, phase, questions, currentIndex, score, correctCount, wrongCount, quizSessionId, lives]
   );
 
   const handleFinish = async (finalScore: number, correct: number, wrong: number) => {
@@ -373,7 +380,7 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
               Voltar ao Mapa
             </button>
             <button
-              onClick={() => { setPhase("loading"); setLoadError(null); }}
+              onClick={() => { setPhase("loading"); setLoadError(null); setRetryCount(c => c + 1); }}
               className="px-5 py-2 rounded-xl text-white font-semibold hover:opacity-90 transition"
               style={{ background: info.color }}
             >
@@ -386,7 +393,8 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
   }
 
   if (phase === "result" && finalResult) {
-    const percentage = Math.round((finalResult.correctAnswers / 10) * 100);
+    const totalAnswered = finalResult.correctAnswers + finalResult.wrongAnswers;
+    const percentage = totalAnswered > 0 ? Math.round((finalResult.correctAnswers / totalAnswered) * 100) : 0;
     const grade = percentage >= 80 ? "Excelente!" : percentage >= 60 ? "Muito bom!" : percentage >= 40 ? "Continue praticando!" : "Não desista!";
     const gradeEmoji = percentage >= 80 ? "🏆" : percentage >= 60 ? "⭐" : percentage >= 40 ? "💪" : "📚";
 
@@ -503,8 +511,10 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
                     setAnswered(false);
                     setShowConfetti(false);
                     setFinalResult(null);
-                    // Reload
-                    window.location.reload();
+                    setLives(3);
+                    setTimeLeft(30);
+                    setPointsDelta(null);
+                    setRetryCount(c => c + 1);
                   }}
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -723,13 +733,10 @@ export default function QuizScreen({ discipline, customMaterialId, customTitle, 
                     disabled={answered}
                   >
                     <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 font-sans"
+                      className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0"
                       style={{
                         background: showResult && isCorrect ? "#4ECDC4" : showResult && isSelected ? "#FF6B6B" : info.color,
                         color: "white",
-                        fontFamily: "Arial, sans-serif",
-                        fontWeight: "900",
-                        letterSpacing: "0",
                       }}
                     >
                       {opt}

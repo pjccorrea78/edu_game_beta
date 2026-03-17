@@ -10,6 +10,9 @@ const disciplineNames: Record<string, string> = {
   geografia: "Geografia",
   historia: "História",
   ciencias: "Ciências",
+  educacao_fisica: "Educação Física",
+  arte: "Arte",
+  ensino_religioso: "Ensino Religioso",
 };
 const disciplineEmojis: Record<string, string> = {
   matematica: "🔢",
@@ -17,6 +20,9 @@ const disciplineEmojis: Record<string, string> = {
   geografia: "🌍",
   historia: "🏛️",
   ciencias: "🔬",
+  educacao_fisica: "⚽",
+  arte: "🎨",
+  ensino_religioso: "✨",
 };
 
 type DuelView = "menu" | "create" | "join" | "my_duels";
@@ -53,7 +59,7 @@ export default function DuelChallenge({ onBack }: { onBack: () => void }) {
     createMutation.mutate({
       sessionId,
       quizType: "discipline",
-      discipline: selectedDiscipline as "matematica" | "portugues" | "geografia" | "historia" | "ciencias",
+      discipline: selectedDiscipline as "matematica" | "portugues" | "geografia" | "historia" | "ciencias" | "educacao_fisica" | "arte" | "ensino_religioso",
     });
   };
 

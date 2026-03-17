@@ -142,6 +142,15 @@ export async function updatePlayerAvatar(playerId: number, avatarConfig: AvatarC
 export async function updatePlayerNickname(playerId: number, nickname: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  // Check uniqueness before update
+  const existing = await db
+    .select({ id: players.id })
+    .from(players)
+    .where(and(eq(players.nickname, nickname), sql`${players.id} != ${playerId}`))
+    .limit(1);
+  if (existing.length > 0) {
+    throw new Error("Este nome já está em uso. Escolha outro!");
+  }
   await db.update(players).set({ nickname }).where(eq(players.id, playerId));
 }
 

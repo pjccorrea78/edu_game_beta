@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useGame } from "@/contexts/GameContext";
 import BlockyAvatar from "@/components/BlockyAvatar";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 type Props = {
   onComplete: () => void;
@@ -83,8 +84,15 @@ export default function Welcome({ onComplete }: Props) {
       await saveAvatar.mutateAsync({ sessionId, avatarConfig });
       refreshPlayer();
       onComplete();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      const msg = e?.message || e?.data?.message || "";
+      if (msg.includes("já está em uso") || msg.includes("Duplicate") || msg.includes("unique")) {
+        toast.error("Este nome já está em uso. Escolha outro!");
+        setStep(2); // Go back to nickname step
+      } else {
+        toast.error("Erro ao criar conta. Tente novamente.");
+        console.error(e);
+      }
     } finally {
       setIsLoading(false);
     }

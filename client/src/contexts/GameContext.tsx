@@ -8,6 +8,9 @@ export type AvatarConfig = {
   shirtColor: string;
   pantsColor: string;
   equippedItems: number[];
+  gender?: "masculino" | "feminino";
+  hairStyle?: string;
+  aiGeneratedName?: string;
 };
 
 export type Player = {
@@ -18,6 +21,12 @@ export type Player = {
   totalPoints: number;
   guardianEmail?: string | null;
   avatarConfig?: AvatarConfig | null;
+  avatarImageUrl?: string | null;
+  avatarShareCode?: string | null;
+  parentEmail?: string | null;
+  gender?: "masculino" | "feminino" | null;
+  age?: number | null;
+  grade?: string | null;
 };
 
 type GameContextType = {
@@ -57,7 +66,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, getOrCreate]);
 
   useEffect(() => {
     loadPlayer();
