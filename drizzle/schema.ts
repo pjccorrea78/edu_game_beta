@@ -472,3 +472,18 @@ export const classStudents = mysqlTable("class_students", {
 export type ClassStudent = typeof classStudents.$inferSelect;
 export type InsertClassStudent = typeof classStudents.$inferInsert;
 
+
+// ─── Class Materials (Materiais de estudo da turma) ──────────────────────────
+export const classMaterials = mysqlTable("class_materials", {
+  id: int("id").autoincrement().primaryKey(),
+  classId: int("classId").notNull(),
+  title: varchar("title", { length: 256 }).notNull(),
+  description: text("description"),
+  fileUrl: varchar("fileUrl", { length: 1024 }).notNull(),
+  fileType: mysqlEnum("fileType", ["pdf", "doc", "docx", "xlsx", "txt", "image"]).default("pdf").notNull(),
+  uploadedBy: int("uploadedBy").notNull(), // playerId do professor
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ClassMaterial = typeof classMaterials.$inferSelect;
+export type InsertClassMaterial = typeof classMaterials.$inferInsert;

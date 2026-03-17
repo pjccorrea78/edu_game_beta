@@ -46,8 +46,10 @@ import {
   schools,
   schoolClasses,
   classStudents,
+  classMaterials,
   type InsertSchool,
   type InsertSchoolClass,
+  type InsertClassMaterial,
   type InsertClassStudent,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -1002,4 +1004,70 @@ export async function getClassStudentStats(classId: number) {
   }
   const avgPoints = Math.round(enrolled.reduce((a, s) => a + s.totalPoints, 0) / enrolled.length);
   return { totalStudents: enrolled.length, avgPoints, totalQuizzes };
+}
+
+
+// ─── Class Materials (Materiais de estudo da turma) ──────────────────────────
+export async function createClassMaterial(data: InsertClassMaterial) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(classMaterials).values(data);
+  const [created] = await db.select().from(classMaterials)
+    .where(eq(classMaterials.classId, data.classId))
+    .orderBy(desc(classMaterials.createdAt))
+    .limit(1);
+  return created;
+}
+
+export async function getClassMaterials(classId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(classMaterials)
+    .where(eq(classMaterials.classId, classId))
+    .orderBy(desc(classMaterials.createdAt));
+}
+
+export async function deleteClassMaterial(materialId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(classMaterials).where(eq(classMaterials.id, materialId));
+}
+
+// ─── Search and Add Students Manually ────────────────────────────────────────
+export async function searchPlayersByNickname(nickname: string, limit = 10) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: players.id,
+    nickname: players.nickname,
+    totalPoints: players.totalPoints,
+    grade: players.grade,
+    age: players.age,
+    avatarConfig: players.avatarConfig,
+  })
+    .from(players)
+    .where(sql`LOWER(${players.nickname}) LIKE LOWER(${`%${nickname}%`})`)
+    .limit(limit);
+}
+
+export async function addStudentManually(classId: number, playerId: number, addedBy: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Check if already enrolled
+  const existing = await db.select().from(classStudents)
+    .where(and(eq(classStudents.classId, classId), eq(classStudents.playerId, playerId)))
+    .limit(1);
+  
+  if (existing.length > 0) {
+    throw new Error("Aluno já está inscrito nesta turma");
+  }
+  
+  // Add to class_students
+  await db.insert(classStudents).values({
+    classId,
+    playerId,
+  });
+  
+  return { success: true };
 }

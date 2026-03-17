@@ -91,6 +91,11 @@ import {
   getStudentsByClass,
   removeStudentFromClass,
   getClassStudentStats,
+  searchPlayersByNickname,
+  addStudentManually,
+  createClassMaterial,
+  getClassMaterials,
+  deleteClassMaterial,
 } from "./db";
 import { players, equipmentItems } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -1457,6 +1462,62 @@ Retorne SOMENTE um JSON válido neste formato:
           wrongQuestions: [],
           recentSessions: history.slice(0, 10)
         };
+      }),
+    
+    // ─── Manual Student Addition ───────────────────────────────────────────
+    searchStudents: publicProcedure
+      .input(z.object({ sessionId: z.string(), nickname: z.string().min(1) }))
+      .query(async ({ input }) => {
+        return await searchPlayersByNickname(input.nickname);
+      }),
+    
+    addStudentManually: publicProcedure
+      .input(z.object({ sessionId: z.string(), classId: z.number(), playerId: z.number() }))
+      .mutation(async ({ input }) => {
+        const teacher = await getOrCreatePlayer(input.sessionId);
+        const cls = await getSchoolClassById(input.classId);
+        if (!cls || cls.ownerId !== teacher.id) throw new Error("Turma não encontrada");
+        return await addStudentManually(input.classId, input.playerId, teacher.id);
+      }),
+    
+    // ─── Class Materials ───────────────────────────────────────────────────
+    uploadMaterial: publicProcedure
+      .input(z.object({ 
+        sessionId: z.string(), 
+        classId: z.number(), 
+        title: z.string().min(1).max(256),
+        description: z.string().optional(),
+        fileUrl: z.string().url(),
+        fileType: z.enum(["pdf", "doc", "docx", "xlsx", "txt", "image"])
+      }))
+      .mutation(async ({ input }) => {
+        const teacher = await getOrCreatePlayer(input.sessionId);
+        const cls = await getSchoolClassById(input.classId);
+        if (!cls || cls.ownerId !== teacher.id) throw new Error("Turma não encontrada");
+        return await createClassMaterial({
+          classId: input.classId,
+          title: input.title,
+          description: input.description,
+          fileUrl: input.fileUrl,
+          fileType: input.fileType,
+          uploadedBy: teacher.id,
+        });
+      }),
+    
+    getMaterials: publicProcedure
+      .input(z.object({ sessionId: z.string(), classId: z.number() }))
+      .query(async ({ input }) => {
+        const teacher = await getOrCreatePlayer(input.sessionId);
+        const cls = await getSchoolClassById(input.classId);
+        if (!cls || cls.ownerId !== teacher.id) throw new Error("Turma não encontrada");
+        return await getClassMaterials(input.classId);
+      }),
+    
+    deleteMaterial: publicProcedure
+      .input(z.object({ sessionId: z.string(), materialId: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteClassMaterial(input.materialId);
+        return { success: true };
       }),
   }),
 
