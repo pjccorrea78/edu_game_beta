@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────
-type Tab = "schools" | "classes" | "students" | "legacy";
+type Tab = "schools" | "classes" | "students" | "disciplines" | "materials" | "legacy";
 type SchoolData = { id: number; name: string; city?: string | null; state?: string | null; createdAt: Date };
 type ClassData = { id: number; schoolId: number; name: string; grade?: string | null; year?: number | null; inviteCode: string; studentCount?: number; createdAt: Date };
 type StudentData = { id: number; classId: number; playerId: number; nickname: string; totalPoints: number; avatarConfig: any; gender?: string | null; age?: number | null; grade?: string | null; enrolledAt: Date };
@@ -23,7 +23,53 @@ const GRADES = [
   { value: "7", label: "7º Ano" }, { value: "8", label: "8º Ano" }, { value: "9", label: "9º Ano" },
 ];
 
+const DISCIPLINE_COLORS: Record<string, { bg: string; color: string; emoji: string }> = {
+  matematica:   { bg: "from-red-400 to-orange-400",    color: "#FF6B6B", emoji: "🔢" },
+  portugues:    { bg: "from-teal-400 to-cyan-400",     color: "#4ECDC4", emoji: "📖" },
+  geografia:    { bg: "from-blue-400 to-indigo-400",   color: "#45B7D1", emoji: "🌍" },
+  historia:     { bg: "from-yellow-400 to-amber-400",  color: "#F7DC6F", emoji: "🏛️" },
+  ciencias:     { bg: "from-green-400 to-emerald-400", color: "#A8E6CF", emoji: "🔬" },
+  default:      { bg: "from-violet-400 to-purple-500", color: "#7C3AED", emoji: "📚" },
+};
+
+function getDisciplineInfo(discipline?: string | null) {
+  if (!discipline) return DISCIPLINE_COLORS.default;
+  return DISCIPLINE_COLORS[discipline] ?? DISCIPLINE_COLORS.default;
+}
+
 // ─── Shared Components ──────────────────────────────────────────────
+function StatusBadge({ status }: { status: string }) {
+  if (status === "ready") {
+    return (
+      <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+        <CheckCircle className="w-3 h-3" /> Pronto
+      </span>
+    );
+  }
+  if (status === "analyzing") {
+    return (
+      <span className="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
+        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+          <Clock className="w-3 h-3" />
+        </motion.div>
+        Analisando...
+      </span>
+    );
+  }
+  if (status === "error") {
+    return (
+      <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
+        <AlertTriangle className="w-3 h-3" /> Erro
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+      <Clock className="w-3 h-3" /> Pendente
+    </span>
+  );
+}
+
 function EmptyState({ icon, title, sub }: { icon: React.ReactNode; title: string; sub: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center px-6">
@@ -752,6 +798,8 @@ export default function TeacherPanel({ onBack }: { onBack: () => void }) {
     { key: "schools", label: "Escolas", icon: <School className="w-4 h-4" /> },
     { key: "classes", label: "Turmas", icon: <DoorOpen className="w-4 h-4" /> },
     { key: "students", label: "Alunos", icon: <Users className="w-4 h-4" /> },
+    { key: "disciplines", label: "Disciplinas", icon: <BookOpen className="w-4 h-4" /> },
+    { key: "materials", label: "Materiais", icon: <BookOpen className="w-4 h-4" /> },
     { key: "legacy", label: "Material", icon: <BookOpen className="w-4 h-4" /> },
   ];
 
@@ -826,6 +874,18 @@ export default function TeacherPanel({ onBack }: { onBack: () => void }) {
           {tab === "students" && selectedClassId && (
             <motion.div key="students" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
               <StudentsTab sessionId={sessionId} classId={selectedClassId} className={selectedClassName} onBack={() => setTab("classes")} />
+            </motion.div>
+          )}
+
+          {tab === "disciplines" && selectedClassId && (
+            <motion.div key="disciplines" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+              <EmptyState icon={<BookOpen className="w-8 h-8 text-purple-400" />} title="Disciplinas" sub="Gerenciamento de disciplinas por sala (em desenvolvimento)" />
+            </motion.div>
+          )}
+
+          {tab === "materials" && selectedClassId && (
+            <motion.div key="materials" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+              <EmptyState icon={<BookOpen className="w-8 h-8 text-purple-400" />} title="Materiais" sub="Gerenciamento de materiais por sala (em desenvolvimento)" />
             </motion.div>
           )}
 
