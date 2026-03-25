@@ -319,6 +319,12 @@
 - [x] Integrar todas as telas de navegação com o novo menu 3D
 - [x] Testar fluxo completo: mapa → menu → todas as funcionalidades
 
+## Ajustes Minha Escola
+
+- [ ] Melhorar cadastro da escola em Minha Escola com campos cidade/estado
+- [ ] Implementar CRUD de turmas em Minha Escola
+- [ ] Implementar lógica de salas dependentes de turma (sala só criada após turma)
+
 ## Suporte Mobile - Joystick Virtual
 
 - [x] Implementar joystick virtual no canto inferior esquerdo
@@ -544,3 +550,14 @@
 - [ ] Testar fluxo completo: professor cria escola → turma → vincula alunos → envia materiais
 
 - [x] Corrigir loop de login/logout: limpar localStorage ao fazer logout
+
+## Ajustes Minha Escola
+
+- [x] Melhorar cadastro da escola em Minha Escola com campos cidade/estado
+- [x] Implementar CRUD de turmas em Minha Escola
+- [x] Implementar lógica de salas dependentes de turma (sala só criada após turma)
+- [x] Modal SchoolSetupModal com campos nome, cidade, estado
+- [x] Modal CreateGradeModal com seleção de série (1º-9º ano) e ano letivo
+- [x] GradeCard com visual 3D e cores por série
+- [x] Navegação por views: school → grades → rooms
+- [x] Confirmação de exclusão de turma com modal

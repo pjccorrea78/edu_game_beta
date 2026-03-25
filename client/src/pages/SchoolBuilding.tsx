@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
 import { useGame } from "@/contexts/GameContext";
@@ -18,6 +18,10 @@ import {
   Users,
   Copy,
   LogIn,
+  Trash2,
+  GraduationCap,
+  DoorOpen,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +30,9 @@ type Props = {
   onEnterRoom: (materialId: number, title: string) => void;
   onAddMaterial: () => void;
 };
+
+// ─── Views: "school" (fachada/cadastro), "grades" (turmas), "rooms" (salas da turma) ───
+type View = "school" | "grades" | "rooms";
 
 const DISCIPLINE_COLORS: Record<string, { bg: string; color: string; emoji: string }> = {
   matematica:   { bg: "from-red-400 to-orange-400",    color: "#FF6B6B", emoji: "🔢" },
@@ -40,6 +47,24 @@ function getDisciplineInfo(discipline?: string | null) {
   if (!discipline) return DISCIPLINE_COLORS.default;
   return DISCIPLINE_COLORS[discipline] ?? DISCIPLINE_COLORS.default;
 }
+
+const GRADE_LABELS: Record<string, string> = {
+  "1": "1º Ano", "2": "2º Ano", "3": "3º Ano",
+  "4": "4º Ano", "5": "5º Ano", "6": "6º Ano",
+  "7": "7º Ano", "8": "8º Ano", "9": "9º Ano",
+};
+
+const GRADE_COLORS = [
+  "from-red-400 to-rose-500",
+  "from-orange-400 to-amber-500",
+  "from-yellow-400 to-lime-500",
+  "from-green-400 to-emerald-500",
+  "from-teal-400 to-cyan-500",
+  "from-blue-400 to-indigo-500",
+  "from-indigo-400 to-violet-500",
+  "from-purple-400 to-fuchsia-500",
+  "from-pink-400 to-rose-500",
+];
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "ready") {
@@ -103,9 +128,7 @@ function Classroom3D({
         className="bg-white rounded-2xl shadow-lg overflow-hidden border-2"
         style={{ borderColor: isReady ? info.color : "#e5e7eb" }}
       >
-        {/* Door/Room visual */}
         <div className={`bg-gradient-to-br ${info.bg} p-4 relative overflow-hidden`}>
-          {/* Isometric room illustration */}
           <div className="flex items-center justify-between">
             <div className="text-4xl">{info.emoji}</div>
             <div className="text-right">
@@ -119,48 +142,26 @@ function Classroom3D({
               )}
             </div>
           </div>
-
-          {/* Door frame decoration */}
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-12 bg-white/20 rounded-t-xl border-t-2 border-x-2 border-white/40" />
-
-          {/* Animated glow when hovered */}
           {hovered && isReady && (
-            <motion.div
-              className="absolute inset-0 bg-white/10"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            />
+            <motion.div className="absolute inset-0 bg-white/10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
           )}
         </div>
-
-        {/* Info section */}
         <div className="p-3">
-          <h3 className="font-black text-gray-800 text-sm leading-tight line-clamp-2 mb-2">
-            {material.title}
-          </h3>
+          <h3 className="font-black text-gray-800 text-sm leading-tight line-clamp-2 mb-2">{material.title}</h3>
           <div className="flex items-center justify-between">
             <StatusBadge status={material.status} />
             {isReady && (
-              <motion.div
-                animate={{ x: hovered ? 3 : 0 }}
-                className="flex items-center gap-1 text-xs font-bold"
-                style={{ color: info.color }}
-              >
+              <motion.div animate={{ x: hovered ? 3 : 0 }} className="flex items-center gap-1 text-xs font-bold" style={{ color: info.color }}>
                 Entrar <ChevronRight className="w-3 h-3" />
               </motion.div>
             )}
           </div>
         </div>
       </motion.div>
-
-      {/* Locked overlay */}
       {!isReady && material.status === "analyzing" && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <motion.div
-            className="bg-amber-500 text-white text-xs font-black px-2 py-1 rounded-full shadow"
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >
+          <motion.div className="bg-amber-500 text-white text-xs font-black px-2 py-1 rounded-full shadow" animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
             IA analisando...
           </motion.div>
         </div>
@@ -174,20 +175,10 @@ function RankingModal({ materialId, materialTitle, onClose }: { materialId: numb
   const entries = rankingQuery.data?.entries ?? [];
   const medals = ["🥇", "🥈", "🥉"];
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="bg-white rounded-t-3xl w-full max-w-md p-5 pb-8"
-        initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <motion.div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+      <motion.div className="bg-white rounded-t-3xl w-full max-w-md p-5 pb-8" initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-yellow-500" /> Ranking — {materialTitle}
-          </h3>
+          <h3 className="font-black text-gray-800 text-lg flex items-center gap-2"><Trophy className="w-5 h-5 text-yellow-500" /> Ranking — {materialTitle}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
         </div>
         {rankingQuery.isLoading ? (
@@ -201,27 +192,14 @@ function RankingModal({ materialId, materialTitle, onClose }: { materialId: numb
         ) : (
           <div className="space-y-2">
             {entries.map((entry, i) => (
-              <motion.div
-                key={entry.id}
-                className={`flex items-center gap-3 p-3 rounded-2xl ${
-                  i === 0 ? "bg-yellow-50 border-2 border-yellow-200" :
-                  i === 1 ? "bg-gray-50 border-2 border-gray-200" :
-                  i === 2 ? "bg-orange-50 border-2 border-orange-200" :
-                  "bg-white border border-gray-100"
-                }`}
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: i * 0.07 }}
-              >
+              <motion.div key={entry.id} className={`flex items-center gap-3 p-3 rounded-2xl ${i === 0 ? "bg-yellow-50 border-2 border-yellow-200" : i === 1 ? "bg-gray-50 border-2 border-gray-200" : i === 2 ? "bg-orange-50 border-2 border-orange-200" : "bg-white border border-gray-100"}`} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.07 }}>
                 <span className="text-2xl w-8 text-center">{medals[i] ?? `#${i + 1}`}</span>
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-gray-800 text-sm truncate">{entry.nickname ?? "Jogador"}</p>
                   <p className="text-xs text-gray-400">{entry.correctAnswers}/{entry.totalQuestions} acertos</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-black text-lg" style={{ color: i === 0 ? "#F59E0B" : i === 1 ? "#6B7280" : i === 2 ? "#EA580C" : "#7C3AED" }}>
-                    {entry.score}
-                  </p>
+                  <p className="font-black text-lg" style={{ color: i === 0 ? "#F59E0B" : i === 1 ? "#6B7280" : i === 2 ? "#EA580C" : "#7C3AED" }}>{entry.score}</p>
                   <p className="text-xs text-gray-400">pts</p>
                 </div>
               </motion.div>
@@ -267,50 +245,24 @@ function ClassCodeModal({ onClose, sessionId }: { onClose: () => void; sessionId
   };
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="bg-white rounded-t-3xl w-full max-w-md p-5 pb-8"
-        initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <motion.div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+      <motion.div className="bg-white rounded-t-3xl w-full max-w-md p-5 pb-8" initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
-            <Users className="w-5 h-5 text-violet-500" /> Código de Turma
-          </h3>
+          <h3 className="font-black text-gray-800 text-lg flex items-center gap-2"><Users className="w-5 h-5 text-violet-500" /> Código de Turma</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
         </div>
-
         {mode === "menu" && (
           <div className="space-y-3">
-            <motion.button
-              className="w-full p-4 rounded-2xl bg-violet-50 border-2 border-violet-200 text-left flex items-center gap-3"
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              onClick={() => setMode("generate")}
-            >
+            <motion.button className="w-full p-4 rounded-2xl bg-violet-50 border-2 border-violet-200 text-left flex items-center gap-3" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setMode("generate")}>
               <Share2 className="w-8 h-8 text-violet-500" />
-              <div>
-                <p className="font-black text-gray-800">Compartilhar Material</p>
-                <p className="text-xs text-gray-500">Gere um código para sua turma estudar o mesmo material</p>
-              </div>
+              <div><p className="font-black text-gray-800">Compartilhar Material</p><p className="text-xs text-gray-500">Gere um código para sua turma estudar o mesmo material</p></div>
             </motion.button>
-            <motion.button
-              className="w-full p-4 rounded-2xl bg-blue-50 border-2 border-blue-200 text-left flex items-center gap-3"
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              onClick={() => setMode("join")}
-            >
+            <motion.button className="w-full p-4 rounded-2xl bg-blue-50 border-2 border-blue-200 text-left flex items-center gap-3" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setMode("join")}>
               <LogIn className="w-8 h-8 text-blue-500" />
-              <div>
-                <p className="font-black text-gray-800">Entrar em Turma</p>
-                <p className="text-xs text-gray-500">Digite o código do professor para acessar o material</p>
-              </div>
+              <div><p className="font-black text-gray-800">Entrar em Turma</p><p className="text-xs text-gray-500">Digite o código do professor para acessar o material</p></div>
             </motion.button>
           </div>
         )}
-
         {mode === "generate" && (
           <div>
             <button onClick={() => { setMode("menu"); setGeneratedCode(null); setSelectedMaterialId(null); }} className="text-violet-600 font-bold text-sm mb-4 flex items-center gap-1"><ArrowLeft className="w-4 h-4" /> Voltar</button>
@@ -321,11 +273,7 @@ function ClassCodeModal({ onClose, sessionId }: { onClose: () => void; sessionId
                 <div className="bg-violet-50 border-2 border-violet-300 rounded-2xl p-4 mb-4">
                   <p className="font-black text-4xl text-violet-700 tracking-widest">{generatedCode}</p>
                 </div>
-                <motion.button
-                  className="flex items-center gap-2 mx-auto bg-violet-600 text-white px-4 py-2 rounded-xl font-bold text-sm"
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => { navigator.clipboard.writeText(generatedCode); toast.success("Código copiado!"); }}
-                >
+                <motion.button className="flex items-center gap-2 mx-auto bg-violet-600 text-white px-4 py-2 rounded-xl font-bold text-sm" whileTap={{ scale: 0.95 }} onClick={() => { navigator.clipboard.writeText(generatedCode); toast.success("Código copiado!"); }}>
                   <Copy className="w-4 h-4" /> Copiar Código
                 </motion.button>
                 <p className="text-xs text-gray-400 mt-3">Compartilhe este código com sua turma</p>
@@ -338,50 +286,26 @@ function ClassCodeModal({ onClose, sessionId }: { onClose: () => void; sessionId
                 ) : (
                   <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
                     {readyMaterials.map((m) => (
-                      <motion.button
-                        key={m.id}
-                        className={`w-full p-3 rounded-xl text-left border-2 transition-all ${
-                          selectedMaterialId === m.id ? "border-violet-400 bg-violet-50" : "border-gray-200 bg-white"
-                        }`}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setSelectedMaterialId(m.id)}
-                      >
+                      <motion.button key={m.id} className={`w-full p-3 rounded-xl text-left border-2 transition-all ${selectedMaterialId === m.id ? "border-violet-400 bg-violet-50" : "border-gray-200 bg-white"}`} whileTap={{ scale: 0.98 }} onClick={() => setSelectedMaterialId(m.id)}>
                         <p className="font-bold text-gray-800 text-sm">{m.title}</p>
                         <p className="text-xs text-gray-400">{m.questionsGenerated} questões</p>
                       </motion.button>
                     ))}
                   </div>
                 )}
-                <motion.button
-                  className={`w-full py-3 rounded-2xl font-black text-white ${ selectedMaterialId ? "bg-violet-600" : "bg-gray-300 cursor-not-allowed" }`}
-                  whileTap={selectedMaterialId ? { scale: 0.97 } : {}}
-                  onClick={handleGenerate}
-                  disabled={!selectedMaterialId || generateMutation.isPending}
-                >
+                <motion.button className={`w-full py-3 rounded-2xl font-black text-white ${selectedMaterialId ? "bg-violet-600" : "bg-gray-300 cursor-not-allowed"}`} whileTap={selectedMaterialId ? { scale: 0.97 } : {}} onClick={handleGenerate} disabled={!selectedMaterialId || generateMutation.isPending}>
                   {generateMutation.isPending ? "Gerando..." : "Gerar Código"}
                 </motion.button>
               </div>
             )}
           </div>
         )}
-
         {mode === "join" && (
           <div>
             <button onClick={() => setMode("menu")} className="text-violet-600 font-bold text-sm mb-4 flex items-center gap-1"><ArrowLeft className="w-4 h-4" /> Voltar</button>
             <p className="font-bold text-gray-700 mb-3">Digite o código da turma:</p>
-            <input
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="Ex: AB3C7X"
-              maxLength={8}
-              className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-violet-400 outline-none text-center text-2xl font-black tracking-widest text-violet-700 mb-4"
-            />
-            <motion.button
-              className={`w-full py-3 rounded-2xl font-black text-white ${ joinCode.trim().length >= 4 ? "bg-blue-600" : "bg-gray-300 cursor-not-allowed" }`}
-              whileTap={joinCode.trim().length >= 4 ? { scale: 0.97 } : {}}
-              onClick={handleJoin}
-              disabled={joinCode.trim().length < 4 || joinMutation.isPending}
-            >
+            <input value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} placeholder="Ex: AB3C7X" maxLength={8} className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-violet-400 outline-none text-center text-2xl font-black tracking-widest text-violet-700 mb-4" />
+            <motion.button className={`w-full py-3 rounded-2xl font-black text-white ${joinCode.trim().length >= 4 ? "bg-blue-600" : "bg-gray-300 cursor-not-allowed"}`} whileTap={joinCode.trim().length >= 4 ? { scale: 0.97 } : {}} onClick={handleJoin} disabled={joinCode.trim().length < 4 || joinMutation.isPending}>
               {joinMutation.isPending ? "Entrando..." : "Entrar na Turma"}
             </motion.button>
           </div>
@@ -391,297 +315,490 @@ function ClassCodeModal({ onClose, sessionId }: { onClose: () => void; sessionId
   );
 }
 
-export default function SchoolBuilding({ onBack, onEnterRoom, onAddMaterial }: Props) {
-  const { player, sessionId } = useGame();
-  const [editingName, setEditingName] = useState(false);
-  const [schoolNameInput, setSchoolNameInput] = useState("");
-  const [rankingMaterial, setRankingMaterial] = useState<{ id: number; title: string } | null>(null);
-  const [showClassCode, setShowClassCode] = useState(false);
-
-  const materialsQuery = trpc.studyMaterial.list.useQuery({ sessionId });
-  const updateSchoolName = trpc.player.updateSchoolName.useMutation({
-    onSuccess: () => {
-      setEditingName(false);
-      // Refresh is handled by parent via GameContext
-    },
+// ─── School Setup Modal (cadastro/edição com cidade e estado) ───
+function SchoolSetupModal({ onClose, sessionId, existingSchool }: {
+  onClose: () => void;
+  sessionId: string;
+  existingSchool?: { id: number; name: string; city?: string | null; state?: string | null } | null;
+}) {
+  const [name, setName] = useState(existingSchool?.name ?? "");
+  const [city, setCity] = useState(existingSchool?.city ?? "");
+  const [state, setState] = useState(existingSchool?.state ?? "");
+  const utils = trpc.useUtils();
+  const createMut = trpc.teacher.createSchool.useMutation({
+    onSuccess: () => { utils.teacher.listSchools.invalidate(); toast.success("Escola criada!"); onClose(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const updateMut = trpc.teacher.updateSchool.useMutation({
+    onSuccess: () => { utils.teacher.listSchools.invalidate(); toast.success("Escola atualizada!"); onClose(); },
+    onError: (e) => toast.error(e.message),
   });
 
-  const schoolName = player?.schoolName ?? null;
+  const handleSave = () => {
+    if (!name.trim()) { toast.error("Nome da escola é obrigatório"); return; }
+    if (existingSchool) {
+      updateMut.mutate({ sessionId, schoolId: existingSchool.id, name: name.trim(), city: city.trim() || undefined, state: state.trim() || undefined });
+    } else {
+      createMut.mutate({ sessionId, name: name.trim(), city: city.trim() || undefined, state: state.trim() || undefined });
+    }
+  };
+
+  const isPending = createMut.isPending || updateMut.isPending;
+
+  return (
+    <motion.div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+      <motion.div className="bg-white rounded-t-3xl w-full max-w-md p-5 pb-8" initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
+            <School className="w-5 h-5 text-violet-500" />
+            {existingSchool ? "Editar Escola" : "Cadastrar Escola"}
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-bold text-gray-500 mb-1 block">Nome da Escola *</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Escola Municipal João Silva" maxLength={256} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-400 outline-none text-sm font-bold text-gray-800" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-1 block">Cidade</label>
+              <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ex: Fortaleza" maxLength={128} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-400 outline-none text-sm font-bold text-gray-800" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-1 block">Estado</label>
+              <input value={state} onChange={(e) => setState(e.target.value)} placeholder="Ex: CE" maxLength={64} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-400 outline-none text-sm font-bold text-gray-800" />
+            </div>
+          </div>
+          <motion.button className={`w-full py-3 rounded-2xl font-black text-white mt-2 ${name.trim() ? "bg-violet-600" : "bg-gray-300 cursor-not-allowed"}`} whileTap={name.trim() ? { scale: 0.97 } : {}} onClick={handleSave} disabled={!name.trim() || isPending}>
+            {isPending ? "Salvando..." : existingSchool ? "Salvar Alterações" : "Criar Escola"}
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Grade (Turma) Card ───
+function GradeCard({ grade, index, onSelect, onDelete }: {
+  grade: { id: number; gradeLevel: string; year?: number | null };
+  index: number;
+  onSelect: () => void;
+  onDelete: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const gradeIdx = parseInt(grade.gradeLevel) - 1;
+  const gradientClass = GRADE_COLORS[gradeIdx] ?? GRADE_COLORS[0];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.08 }}
+      className="relative cursor-pointer"
+      onHoverStart={() => setHovered(true)}
+      onHoverEnd={() => setHovered(false)}
+      onClick={onSelect}
+    >
+      <motion.div
+        animate={{ y: hovered ? -4 : 0, scale: hovered ? 1.02 : 1 }}
+        transition={{ type: "spring", stiffness: 300 }}
+        className="bg-white rounded-2xl shadow-lg overflow-hidden border-2 border-gray-100"
+      >
+        <div className={`bg-gradient-to-br ${gradientClass} p-4 relative overflow-hidden`}>
+          <div className="flex items-center justify-between">
+            <GraduationCap className="w-8 h-8 text-white/90" />
+            <div className="text-right">
+              <div className="text-white font-black text-xl">{GRADE_LABELS[grade.gradeLevel]}</div>
+              {grade.year && <div className="text-white/70 text-xs font-bold">{grade.year}</div>}
+            </div>
+          </div>
+          {/* Door frame */}
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-10 bg-white/20 rounded-t-lg border-t-2 border-x-2 border-white/30" />
+        </div>
+        <div className="p-3 flex items-center justify-between">
+          <span className="text-xs font-bold text-gray-500">Ver salas</span>
+          <motion.div animate={{ x: hovered ? 3 : 0 }}>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          </motion.div>
+        </div>
+      </motion.div>
+      {/* Delete button */}
+      <motion.button
+        className="absolute top-2 right-2 w-7 h-7 bg-red-400 rounded-full flex items-center justify-center shadow-md z-10 opacity-0 hover:opacity-100"
+        style={{ opacity: hovered ? 1 : 0 }}
+        whileHover={{ scale: 1.15 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        title="Excluir turma"
+      >
+        <Trash2 className="w-3.5 h-3.5 text-white" />
+      </motion.button>
+    </motion.div>
+  );
+}
+
+// ─── Create Grade Modal ───
+function CreateGradeModal({ onClose, sessionId, schoolId }: { onClose: () => void; sessionId: string; schoolId: number }) {
+  const [gradeLevel, setGradeLevel] = useState("");
+  const [year, setYear] = useState(new Date().getFullYear().toString());
+  const utils = trpc.useUtils();
+  const createMut = trpc.teacher.createGrade.useMutation({
+    onSuccess: () => { utils.teacher.getGradesBySchool.invalidate(); toast.success("Turma criada!"); onClose(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  return (
+    <motion.div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+      <motion.div className="bg-white rounded-t-3xl w-full max-w-md p-5 pb-8" initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
+            <GraduationCap className="w-5 h-5 text-violet-500" /> Nova Turma
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-bold text-gray-500 mb-1 block">Série *</label>
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(GRADE_LABELS).map(([val, label]) => (
+                <motion.button
+                  key={val}
+                  className={`py-2.5 rounded-xl text-sm font-bold transition-all ${gradeLevel === val ? "bg-violet-600 text-white shadow" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setGradeLevel(val)}
+                >
+                  {label}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-gray-500 mb-1 block">Ano Letivo</label>
+            <input value={year} onChange={(e) => setYear(e.target.value)} type="number" min={2024} max={2030} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-400 outline-none text-sm font-bold text-gray-800" />
+          </div>
+          <motion.button
+            className={`w-full py-3 rounded-2xl font-black text-white mt-2 ${gradeLevel ? "bg-violet-600" : "bg-gray-300 cursor-not-allowed"}`}
+            whileTap={gradeLevel ? { scale: 0.97 } : {}}
+            onClick={() => {
+              if (!gradeLevel) return;
+              createMut.mutate({ sessionId, schoolId, gradeLevel: gradeLevel as any, year: parseInt(year) || undefined });
+            }}
+            disabled={!gradeLevel || createMut.isPending}
+          >
+            {createMut.isPending ? "Criando..." : "Criar Turma"}
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Main Component ───
+export default function SchoolBuilding({ onBack, onEnterRoom, onAddMaterial }: Props) {
+  const { player, sessionId } = useGame();
+  const [view, setView] = useState<View>("school");
+  const [selectedSchool, setSelectedSchool] = useState<{ id: number; name: string; city?: string | null; state?: string | null } | null>(null);
+  const [selectedGrade, setSelectedGrade] = useState<{ id: number; gradeLevel: string } | null>(null);
+  const [rankingMaterial, setRankingMaterial] = useState<{ id: number; title: string } | null>(null);
+  const [showClassCode, setShowClassCode] = useState(false);
+  const [showSchoolSetup, setShowSchoolSetup] = useState(false);
+  const [showCreateGrade, setShowCreateGrade] = useState(false);
+  const [deleteGradeId, setDeleteGradeId] = useState<number | null>(null);
+
+  // Queries
+  const schoolsQuery = trpc.teacher.listSchools.useQuery({ sessionId });
+  const schools = schoolsQuery.data ?? [];
+  const mySchool = schools.length > 0 ? schools[0] : null;
+
+  const gradesQuery = trpc.teacher.getGradesBySchool.useQuery(
+    { sessionId, schoolId: mySchool?.id ?? 0 },
+    { enabled: !!mySchool }
+  );
+  const grades = gradesQuery.data ?? [];
+
+  const materialsQuery = trpc.studyMaterial.list.useQuery({ sessionId });
   const materials = materialsQuery.data?.materials ?? [];
 
-  const handleSaveSchoolName = () => {
-    if (!schoolNameInput.trim()) return;
-    updateSchoolName.mutate({ sessionId, schoolName: schoolNameInput.trim() });
+  const utils = trpc.useUtils();
+  const deleteGradeMut = trpc.teacher.deleteGrade.useMutation({
+    onSuccess: () => { utils.teacher.getGradesBySchool.invalidate(); toast.success("Turma excluída!"); setDeleteGradeId(null); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  // Header title and back logic
+  const headerTitle = view === "school" ? "Minha Escola" : view === "grades" ? (mySchool?.name ?? "Turmas") : `${GRADE_LABELS[selectedGrade?.gradeLevel ?? ""] ?? "Salas"}`;
+  const headerSub = view === "school"
+    ? (mySchool ? [mySchool.city, mySchool.state].filter(Boolean).join(" - ") || "Gerencie sua escola" : "Cadastre sua escola")
+    : view === "grades"
+    ? "Selecione ou crie uma turma"
+    : "Salas de estudo da turma";
+
+  const handleBack = () => {
+    if (view === "rooms") setView("grades");
+    else if (view === "grades") setView("school");
+    else onBack();
   };
 
   return (
     <>
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ background: "linear-gradient(180deg, #7C3AED22 0%, #f8f9ff 30%)" }}
-    >
-      {/* Header */}
-      <div className="p-4 flex items-center gap-3">
-        <motion.button
-          className="w-10 h-10 rounded-xl bg-white shadow flex items-center justify-center"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onBack}
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-600" />
-        </motion.button>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <School className="w-5 h-5 text-violet-600" />
-            <span className="font-black text-gray-800 text-lg">Minha Escola</span>
+      <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(180deg, #7C3AED22 0%, #f8f9ff 30%)" }}>
+        {/* Header */}
+        <div className="p-4 flex items-center gap-3">
+          <motion.button className="w-10 h-10 rounded-xl bg-white shadow flex items-center justify-center" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleBack}>
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </motion.button>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <School className="w-5 h-5 text-violet-600" />
+              <span className="font-black text-gray-800 text-lg">{headerTitle}</span>
+            </div>
+            <p className="text-xs text-gray-500">{headerSub}</p>
           </div>
-          <p className="text-xs text-gray-500">Salas criadas com seus materiais</p>
+          <div className="flex items-center gap-1 bg-white rounded-xl px-3 py-1.5 shadow">
+            <Zap className="w-4 h-4 text-yellow-500" />
+            <span className="font-black text-gray-800">{player?.totalPoints ?? 0}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1 bg-white rounded-xl px-3 py-1.5 shadow">
-          <Zap className="w-4 h-4 text-yellow-500" />
-          <span className="font-black text-gray-800">{player?.totalPoints ?? 0}</span>
-        </div>
-      </div>
 
-      {/* Building facade */}
-      <div className="px-4 mb-4">
-        <motion.div
-          className="relative rounded-3xl overflow-hidden shadow-xl"
-          style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)" }}
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-        >
-          {/* Building top decoration */}
-          <div className="p-5 text-center relative">
-            {/* Windows decoration */}
-            <div className="absolute top-3 left-4 flex gap-2">
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  className="w-5 h-6 bg-yellow-300/80 rounded-sm border border-yellow-400/50"
-                  animate={{ opacity: [0.7, 1, 0.7] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.4 }}
-                />
-              ))}
-            </div>
-            <div className="absolute top-3 right-4 flex gap-2">
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  className="w-5 h-6 bg-yellow-300/80 rounded-sm border border-yellow-400/50"
-                  animate={{ opacity: [1, 0.7, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
-                />
-              ))}
-            </div>
-
-            {/* School name */}
-            <div className="mt-2">
-              {!editingName && !schoolName && (
-                <motion.button
-                  className="flex items-center gap-2 mx-auto bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl font-bold text-sm"
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => {
-                    setSchoolNameInput("");
-                    setEditingName(true);
-                  }}
-                >
-                  <Pencil className="w-4 h-4" />
-                  Dar nome à sua escola
-                </motion.button>
-              )}
-
-              {!editingName && schoolName && (
-                <div className="flex items-center justify-center gap-2">
-                  <h2 className="text-white font-black text-xl drop-shadow">{schoolName}</h2>
-                  <motion.button
-                    className="text-white/70 hover:text-white"
-                    whileHover={{ scale: 1.1 }}
-                    onClick={() => {
-                      setSchoolNameInput(schoolName);
-                      setEditingName(true);
-                    }}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </motion.button>
-                </div>
-              )}
-
-              {editingName && (
-                <motion.div
-                  className="flex items-center gap-2 justify-center"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <input
-                    autoFocus
-                    value={schoolNameInput}
-                    onChange={(e) => setSchoolNameInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSaveSchoolName()}
-                    placeholder="Ex: Escola Municipal João Silva"
-                    maxLength={64}
-                    className="bg-white/20 text-white placeholder-white/50 border border-white/40 rounded-xl px-3 py-2 text-sm font-bold w-52 focus:outline-none focus:bg-white/30"
-                  />
-                  <motion.button
-                    className="bg-white text-violet-700 px-3 py-2 rounded-xl text-sm font-black"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleSaveSchoolName}
-                    disabled={updateSchoolName.isPending}
-                  >
-                    {updateSchoolName.isPending ? "..." : "Salvar"}
-                  </motion.button>
-                  <motion.button
-                    className="text-white/70 hover:text-white text-sm"
-                    onClick={() => setEditingName(false)}
-                  >
-                    ✕
+        <AnimatePresence mode="wait">
+          {/* ─── VIEW: SCHOOL (fachada + cadastro) ─── */}
+          {view === "school" && (
+            <motion.div key="school" className="flex-1 px-4 pb-6" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+              {!mySchool ? (
+                /* Sem escola cadastrada */
+                <motion.div className="text-center py-12" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                  <div className="text-6xl mb-4">🏫</div>
+                  <h4 className="font-black text-gray-700 text-lg mb-2">Nenhuma escola cadastrada</h4>
+                  <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">Cadastre sua escola para organizar turmas e salas de estudo</p>
+                  <motion.button className="flex items-center gap-2 mx-auto bg-violet-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowSchoolSetup(true)}>
+                    <Plus className="w-5 h-5" /> Cadastrar Escola
                   </motion.button>
                 </motion.div>
+              ) : (
+                <>
+                  {/* Building facade */}
+                  <motion.div className="relative rounded-3xl overflow-hidden shadow-xl mb-4" style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)" }} initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+                    <div className="p-5 text-center relative">
+                      {/* Windows */}
+                      <div className="absolute top-3 left-4 flex gap-2">
+                        {[0, 1, 2].map((i) => (
+                          <motion.div key={i} className="w-5 h-6 bg-yellow-300/80 rounded-sm border border-yellow-400/50" animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 2, repeat: Infinity, delay: i * 0.4 }} />
+                        ))}
+                      </div>
+                      <div className="absolute top-3 right-4 flex gap-2">
+                        {[0, 1, 2].map((i) => (
+                          <motion.div key={i} className="w-5 h-6 bg-yellow-300/80 rounded-sm border border-yellow-400/50" animate={{ opacity: [1, 0.7, 1] }} transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }} />
+                        ))}
+                      </div>
+
+                      {/* School name + location */}
+                      <div className="mt-2">
+                        <h2 className="text-white font-black text-xl drop-shadow">{mySchool.name}</h2>
+                        {(mySchool.city || mySchool.state) && (
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            <MapPin className="w-3 h-3 text-white/70" />
+                            <p className="text-white/70 text-xs font-semibold">{[mySchool.city, mySchool.state].filter(Boolean).join(" - ")}</p>
+                          </div>
+                        )}
+                        <motion.button className="mt-2 text-white/60 hover:text-white/90" whileHover={{ scale: 1.1 }} onClick={() => setShowSchoolSetup(true)}>
+                          <Pencil className="w-4 h-4" />
+                        </motion.button>
+                      </div>
+
+                      {/* Stats */}
+                      <div className="flex justify-center gap-4 mt-3">
+                        <div className="text-center">
+                          <p className="text-white font-black text-lg">{grades.length}</p>
+                          <p className="text-white/70 text-xs">Turmas</p>
+                        </div>
+                        <div className="w-px bg-white/30" />
+                        <div className="text-center">
+                          <p className="text-white font-black text-lg">{materials.length}</p>
+                          <p className="text-white/70 text-xs">Salas</p>
+                        </div>
+                        <div className="w-px bg-white/30" />
+                        <div className="text-center">
+                          <p className="text-white font-black text-lg">{materials.reduce((acc, m) => acc + (m.questionsGenerated ?? 0), 0)}</p>
+                          <p className="text-white/70 text-xs">Questões</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-3 bg-violet-900/40" />
+                  </motion.div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="font-black text-gray-700 text-base flex-1">Turmas</h3>
+                    <motion.button className="flex items-center gap-1.5 bg-amber-500 text-white px-3 py-1.5 rounded-xl text-sm font-bold shadow" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowClassCode(true)}>
+                      <Users className="w-4 h-4" /> Código
+                    </motion.button>
+                    <motion.button className="flex items-center gap-1.5 bg-violet-600 text-white px-3 py-1.5 rounded-xl text-sm font-bold shadow" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setView("grades")}>
+                      <GraduationCap className="w-4 h-4" /> Ver Turmas
+                    </motion.button>
+                  </div>
+
+                  {/* Quick grades preview */}
+                  {grades.length === 0 ? (
+                    <motion.div className="text-center py-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                      <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500 font-bold text-sm mb-1">Nenhuma turma criada</p>
+                      <p className="text-gray-400 text-xs mb-4">Crie turmas para organizar as salas de estudo</p>
+                      <motion.button className="flex items-center gap-2 mx-auto bg-violet-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow" whileTap={{ scale: 0.95 }} onClick={() => setView("grades")}>
+                        <Plus className="w-4 h-4" /> Criar Turma
+                      </motion.button>
+                    </motion.div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      {grades.slice(0, 6).map((g, i) => (
+                        <motion.button
+                          key={g.id}
+                          className={`bg-gradient-to-br ${GRADE_COLORS[parseInt(g.gradeLevel) - 1] ?? GRADE_COLORS[0]} p-3 rounded-xl text-center shadow`}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.05 }}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => { setSelectedGrade({ id: g.id, gradeLevel: g.gradeLevel }); setView("rooms"); }}
+                        >
+                          <GraduationCap className="w-5 h-5 text-white/90 mx-auto mb-1" />
+                          <p className="text-white font-black text-sm">{GRADE_LABELS[g.gradeLevel]}</p>
+                        </motion.button>
+                      ))}
+                      {grades.length > 6 && (
+                        <motion.button className="bg-gray-100 p-3 rounded-xl text-center" whileTap={{ scale: 0.95 }} onClick={() => setView("grades")}>
+                          <p className="text-gray-500 font-bold text-xs">+{grades.length - 6} mais</p>
+                        </motion.button>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
-            </div>
-
-            {/* Stats row */}
-            <div className="flex justify-center gap-4 mt-3">
-              <div className="text-center">
-                <p className="text-white font-black text-lg">{materials.length}</p>
-                <p className="text-white/70 text-xs">Salas</p>
-              </div>
-              <div className="w-px bg-white/30" />
-              <div className="text-center">
-                <p className="text-white font-black text-lg">
-                  {materials.filter((m) => m.status === "ready").length}
-                </p>
-                <p className="text-white/70 text-xs">Prontas</p>
-              </div>
-              <div className="w-px bg-white/30" />
-              <div className="text-center">
-                <p className="text-white font-black text-lg">
-                  {materials.reduce((acc, m) => acc + (m.questionsGenerated ?? 0), 0)}
-                </p>
-                <p className="text-white/70 text-xs">Questões</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Ground */}
-          <div className="h-3 bg-violet-900/40" />
-        </motion.div>
-      </div>
-
-        {/* Rooms grid */}
-      <div className="flex-1 px-4 pb-6">
-        {/* Action buttons row */}
-        <div className="flex items-center gap-2 mb-3">
-          <h3 className="font-black text-gray-700 text-base flex-1">Salas de Estudo</h3>
-          <motion.button
-            className="flex items-center gap-1.5 bg-amber-500 text-white px-3 py-1.5 rounded-xl text-sm font-bold shadow"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowClassCode(true)}
-          >
-            <Users className="w-4 h-4" />
-            Turma
-          </motion.button>
-          <motion.button
-            className="flex items-center gap-1.5 bg-violet-600 text-white px-3 py-1.5 rounded-xl text-sm font-bold shadow"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onAddMaterial}
-          >
-            <Plus className="w-4 h-4" />
-            Nova Sala
-          </motion.button>
-        </div>
-
-        {materialsQuery.isLoading ? (
-          <div className="flex justify-center py-12">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            >
-              <BookOpen className="w-8 h-8 text-violet-400" />
             </motion.div>
-          </div>
-        ) : materials.length === 0 ? (
-          <motion.div
-            className="text-center py-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="text-6xl mb-4">🏫</div>
-            <h4 className="font-black text-gray-700 text-lg mb-2">Prédio vazio!</h4>
-            <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">
-              Adicione o material da sua escola para criar salas de estudo personalizadas
-            </p>
-            <motion.button
-              className="flex items-center gap-2 mx-auto bg-violet-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onAddMaterial}
-            >
-              <Plus className="w-5 h-5" />
-              Criar primeira sala
-            </motion.button>
-          </motion.div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {materials.map((material, i) => (
-              <div key={material.id} className="relative">
-                <Classroom3D
-                  material={material}
-                  index={i}
-                  onClick={() => onEnterRoom(material.id, material.title)}
-                />
-                {material.status === "ready" && (
-                  <motion.button
-                    className="absolute top-2 right-2 w-7 h-7 bg-yellow-400 rounded-full flex items-center justify-center shadow-md z-10"
-                    whileHover={{ scale: 1.15 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={(e) => { e.stopPropagation(); setRankingMaterial({ id: material.id, title: material.title }); }}
-                    title="Ver Ranking"
-                  >
-                    <Trophy className="w-3.5 h-3.5 text-white" />
+          )}
+
+          {/* ─── VIEW: GRADES (lista de turmas com CRUD) ─── */}
+          {view === "grades" && mySchool && (
+            <motion.div key="grades" className="flex-1 px-4 pb-6" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="font-black text-gray-700 text-base flex-1">Turmas de {mySchool.name}</h3>
+                <motion.button className="flex items-center gap-1.5 bg-violet-600 text-white px-3 py-1.5 rounded-xl text-sm font-bold shadow" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowCreateGrade(true)}>
+                  <Plus className="w-4 h-4" /> Nova Turma
+                </motion.button>
+              </div>
+
+              {gradesQuery.isLoading ? (
+                <div className="flex justify-center py-12"><motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}><GraduationCap className="w-8 h-8 text-violet-400" /></motion.div></div>
+              ) : grades.length === 0 ? (
+                <motion.div className="text-center py-12" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                  <div className="text-6xl mb-4">📚</div>
+                  <h4 className="font-black text-gray-700 text-lg mb-2">Nenhuma turma</h4>
+                  <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">Crie turmas por série para organizar as salas de estudo</p>
+                  <motion.button className="flex items-center gap-2 mx-auto bg-violet-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowCreateGrade(true)}>
+                    <Plus className="w-5 h-5" /> Criar primeira turma
                   </motion.button>
-                )}
-              </div>
-            ))}
-
-            {/* Add new room card */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: materials.length * 0.1 }}
-              className="cursor-pointer"
-              onClick={onAddMaterial}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="bg-white rounded-2xl shadow border-2 border-dashed border-violet-300 h-full min-h-[140px] flex flex-col items-center justify-center gap-2 text-violet-400 hover:border-violet-500 hover:text-violet-600 transition-colors">
-                <Plus className="w-8 h-8" />
-                <span className="text-xs font-bold">Nova Sala</span>
-              </div>
+                </motion.div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {grades.map((g, i) => (
+                    <GradeCard
+                      key={g.id}
+                      grade={g}
+                      index={i}
+                      onSelect={() => { setSelectedGrade({ id: g.id, gradeLevel: g.gradeLevel }); setView("rooms"); }}
+                      onDelete={() => setDeleteGradeId(g.id)}
+                    />
+                  ))}
+                  {/* Add new grade card */}
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: grades.length * 0.08 }} className="cursor-pointer" onClick={() => setShowCreateGrade(true)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <div className="bg-white rounded-2xl shadow border-2 border-dashed border-violet-300 h-full min-h-[140px] flex flex-col items-center justify-center gap-2 text-violet-400 hover:border-violet-500 hover:text-violet-600 transition-colors">
+                      <Plus className="w-8 h-8" />
+                      <span className="text-xs font-bold">Nova Turma</span>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
             </motion.div>
-          </div>
-        )}
+          )}
+
+          {/* ─── VIEW: ROOMS (salas da turma selecionada) ─── */}
+          {view === "rooms" && selectedGrade && (
+            <motion.div key="rooms" className="flex-1 px-4 pb-6" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="font-black text-gray-700 text-base flex-1">
+                  Salas — {GRADE_LABELS[selectedGrade.gradeLevel]}
+                </h3>
+                <motion.button className="flex items-center gap-1.5 bg-amber-500 text-white px-3 py-1.5 rounded-xl text-sm font-bold shadow" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowClassCode(true)}>
+                  <Users className="w-4 h-4" /> Turma
+                </motion.button>
+                <motion.button className="flex items-center gap-1.5 bg-violet-600 text-white px-3 py-1.5 rounded-xl text-sm font-bold shadow" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={onAddMaterial}>
+                  <Plus className="w-4 h-4" /> Nova Sala
+                </motion.button>
+              </div>
+
+              {materialsQuery.isLoading ? (
+                <div className="flex justify-center py-12"><motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}><BookOpen className="w-8 h-8 text-violet-400" /></motion.div></div>
+              ) : materials.length === 0 ? (
+                <motion.div className="text-center py-12" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                  <div className="text-6xl mb-4">🏫</div>
+                  <h4 className="font-black text-gray-700 text-lg mb-2">Nenhuma sala</h4>
+                  <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">Adicione material para criar salas de estudo nesta turma</p>
+                  <motion.button className="flex items-center gap-2 mx-auto bg-violet-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={onAddMaterial}>
+                    <Plus className="w-5 h-5" /> Criar primeira sala
+                  </motion.button>
+                </motion.div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {materials.map((material, i) => (
+                    <div key={material.id} className="relative">
+                      <Classroom3D material={material} index={i} onClick={() => onEnterRoom(material.id, material.title)} />
+                      {material.status === "ready" && (
+                        <motion.button className="absolute top-2 right-2 w-7 h-7 bg-yellow-400 rounded-full flex items-center justify-center shadow-md z-10" whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setRankingMaterial({ id: material.id, title: material.title }); }} title="Ver Ranking">
+                          <Trophy className="w-3.5 h-3.5 text-white" />
+                        </motion.button>
+                      )}
+                    </div>
+                  ))}
+                  <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: materials.length * 0.1 }} className="cursor-pointer" onClick={onAddMaterial} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <div className="bg-white rounded-2xl shadow border-2 border-dashed border-violet-300 h-full min-h-[140px] flex flex-col items-center justify-center gap-2 text-violet-400 hover:border-violet-500 hover:text-violet-600 transition-colors">
+                      <Plus className="w-8 h-8" />
+                      <span className="text-xs font-bold">Nova Sala</span>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
 
       {/* Modals */}
       <AnimatePresence>
         {rankingMaterial && (
-          <RankingModal
-            materialId={rankingMaterial.id}
-            materialTitle={rankingMaterial.title}
-            onClose={() => setRankingMaterial(null)}
-          />
+          <RankingModal materialId={rankingMaterial.id} materialTitle={rankingMaterial.title} onClose={() => setRankingMaterial(null)} />
         )}
         {showClassCode && (
-          <ClassCodeModal
-            sessionId={sessionId}
-            onClose={() => setShowClassCode(false)}
-          />
+          <ClassCodeModal sessionId={sessionId} onClose={() => setShowClassCode(false)} />
+        )}
+        {showSchoolSetup && (
+          <SchoolSetupModal sessionId={sessionId} existingSchool={mySchool} onClose={() => setShowSchoolSetup(false)} />
+        )}
+        {showCreateGrade && mySchool && (
+          <CreateGradeModal sessionId={sessionId} schoolId={mySchool.id} onClose={() => setShowCreateGrade(false)} />
+        )}
+        {deleteGradeId && (
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl" initial={{ scale: 0.9 }} animate={{ scale: 1 }}>
+              <h3 className="font-bold text-gray-800 text-lg mb-2">Excluir Turma?</h3>
+              <p className="text-gray-500 text-sm mb-5">Todas as salas vinculadas serão removidas. Esta ação não pode ser desfeita.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteGradeId(null)} className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-bold text-sm">Cancelar</button>
+                <button onClick={() => deleteGradeMut.mutate({ sessionId, gradeId: deleteGradeId })} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold text-sm">
+                  {deleteGradeMut.isPending ? "Excluindo..." : "Excluir"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
