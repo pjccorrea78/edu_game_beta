@@ -561,3 +561,7 @@
 - [x] GradeCard com visual 3D e cores por série
 - [x] Navegação por views: school → grades → rooms
 - [x] Confirmação de exclusão de turma com modal
+
+## Bugs - Minha Escola
+
+- [x] Corrigir erros no cadastro de turmas em Minha Escola (tabela grades não existia no banco)

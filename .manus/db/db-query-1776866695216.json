@@ -1,0 +1,68 @@
+{
+  "query": "SELECT * FROM schools LIMIT 5; SELECT * FROM grades LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pL4Gu6JunY4xFh8.b00df5c164b7 --database WycQQtzkjHVgMKwLmLHJRf --execute SELECT * FROM schools LIMIT 5; SELECT * FROM grades LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "ownerId": "1050004",
+      "name": "Escola Teste",
+      "city": "Fortaleza",
+      "state": "CE",
+      "location": "NULL",
+      "teacherId": "0",
+      "createdAt": "2026-03-17 12:26:07",
+      "updatedAt": "2026-03-17 12:26:07"
+    },
+    {
+      "id": "2",
+      "ownerId": "1050004",
+      "name": "Escola Listagem",
+      "city": "São Paulo",
+      "state": "SP",
+      "location": "NULL",
+      "teacherId": "0",
+      "createdAt": "2026-03-17 12:26:07",
+      "updatedAt": "2026-03-17 12:26:07"
+    },
+    {
+      "id": "3",
+      "ownerId": "1050004",
+      "name": "Escola com Turma",
+      "city": "Rio de Janeiro",
+      "state": "RJ",
+      "location": "NULL",
+      "teacherId": "0",
+      "createdAt": "2026-03-17 12:26:07",
+      "updatedAt": "2026-03-17 12:26:07"
+    },
+    {
+      "id": "4",
+      "ownerId": "1050004",
+      "name": "Escola com Classes",
+      "city": "Brasília",
+      "state": "DF",
+      "location": "NULL",
+      "teacherId": "0",
+      "createdAt": "2026-03-17 12:26:07",
+      "updatedAt": "2026-03-17 12:26:07"
+    },
+    {
+      "id": "5",
+      "ownerId": "1050004",
+      "name": "Escola com Alunos",
+      "city": "Salvador",
+      "state": "BA",
+      "location": "NULL",
+      "teacherId": "0",
+      "createdAt": "2026-03-17 12:26:07",
+      "updatedAt": "2026-03-17 12:26:07"
+    }
+  ],
+  "messages": [
+    "id\tschoolId\townerId\tgradeLevel\tyear\tcreatedAt\tupdatedAt",
+    "1\t60001\t1260001\t3\t2026\t2026-03-27 13:34:03\t2026-03-27 13:34:03"
+  ],
+  "stdout": "id\townerId\tname\tcity\tstate\tlocation\tteacherId\tcreatedAt\tupdatedAt\n1\t1050004\tEscola Teste\tFortaleza\tCE\tNULL\t0\t2026-03-17 12:26:07\t2026-03-17 12:26:07\n2\t1050004\tEscola Listagem\tSão Paulo\tSP\tNULL\t0\t2026-03-17 12:26:07\t2026-03-17 12:26:07\n3\t1050004\tEscola com Turma\tRio de Janeiro\tRJ\tNULL\t0\t2026-03-17 12:26:07\t2026-03-17 12:26:07\n4\t1050004\tEscola com Classes\tBrasília\tDF\tNULL\t0\t2026-03-17 12:26:07\t2026-03-17 12:26:07\n5\t1050004\tEscola com Alunos\tSalvador\tBA\tNULL\t0\t2026-03-17 12:26:07\t2026-03-17 12:26:07\nid\tschoolId\townerId\tgradeLevel\tyear\tcreatedAt\tupdatedAt\n1\t60001\t1260001\t3\t2026\t2026-03-27 13:34:03\t2026-03-27 13:34:03\n",
+  "stderr": "",
+  "execution_time_ms": 163
+}
